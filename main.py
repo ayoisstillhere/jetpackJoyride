@@ -26,6 +26,7 @@ laser = []
 distance = 0
 high_score = 0
 restart_cmd = False
+new_bg = 0
 
 # rocket variables
 rocket_counter = 0
@@ -218,6 +219,10 @@ while run:
 
     if laser[0][0] < 0 and laser[1][0] < 0:
         new_laser = True
+
+    if distance - new_bg > 500:
+        new_bg = distance
+        bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 
     if restart_cmd:
         distance = 0
