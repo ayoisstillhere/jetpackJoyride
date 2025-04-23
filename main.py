@@ -13,18 +13,20 @@ timer = pygame.time.Clock()
 font = pygame.font.Font('freesansbold.ttf', 32)
 bg_color = (128, 128, 128)
 lines = [0, WIDTH/4, 2*WIDTH/4, 3*WIDTH/4]
-game_speed = 12
+game_speed = 3
 pause = False
-init_y = HEIGHT-130
+init_y = HEIGHT - 130
 player_y = init_y
 booster = False
 counter = 0
 y_velocity = 0
 gravity = 0.4
+new_laser = True
+laser = []
 
 
 # all code to move lines accross screen and draw bg images
-def draw_screen(line_list):
+def draw_screen(line_list, lase):
     screen.fill('black')
     pygame.draw.rect(surface, (bg_color[0], bg_color[1], bg_color[2], 50), [0,0, WIDTH, HEIGHT])
     screen.blit(surface, (0,0))
@@ -35,9 +37,14 @@ def draw_screen(line_list):
         pygame.draw.line(screen, 'black', (line_list[i], HEIGHT - 50), (line_list[i], HEIGHT), 3)
         if not pause:
             line_list[i] -= game_speed
+            lase[0][0] -= game_speed
+            lase[1][0] -= game_speed
         if line_list[i] < -0:
             line_list[i] = WIDTH
-    return line_list, top, bot
+    lase_line = pygame.draw.line(screen, 'yellow', (lase[0][0], lase[0][1]), (lase[1][0], lase[1][1]), 10)
+    pygame.draw.circle(screen, 'yellow', (lase[0][0], lase[0][1]), 12)
+    pygame.draw.circle(screen, 'yellow', (lase[1][0], lase[1][1]), 12)
+    return line_list, top, bot, lase, lase_line
 
 # draw player including animated states
 def draw_payer():
@@ -78,6 +85,22 @@ def check_colliding():
         coll[1] = True
     return coll
 
+def generate_laser():
+    # 0 - horiz, 1 - vert
+    laser_type = random.randint(0, 1)
+    offset = random.randint(10, 300)
+    match laser_type:
+        case 0:
+            laser_width = random.randint(100, 300)
+            laser_y = random.randint(100, HEIGHT - 100)
+            new_laser = [[WIDTH + offset, laser_y], [WIDTH + offset + laser_width, laser_y]]
+        case 1:
+            laser_height = random.randint(100, 300)
+            laser_y = random.randint(100, HEIGHT - 400)
+            new_laser = [[WIDTH + offset, laser_y], [WIDTH + offset + laser_height, laser_y]]
+    return new_laser
+
+
 
 run = True
 while run:
@@ -86,7 +109,10 @@ while run:
         counter += 1
     else:
         counter = 0
-    linse, top_plat, bot_plat = draw_screen(lines)
+    if new_laser:
+        laser = generate_laser()
+        new_laser = False
+    linse, top_plat, bot_plat, laser, laser_line = draw_screen(lines, laser)
     player = draw_payer()
     colliding = check_colliding()
 
@@ -108,6 +134,9 @@ while run:
         if (colliding[0] and y_velocity > 0) or (colliding[1] and y_velocity < 0):
             y_velocity = 0
         player_y += y_velocity 
+
+    if laser[0][0] < 0 and laser[1][0] < 0:
+        new_laser = True
 
     pygame.display.flip()
 pygame.quit()
