@@ -24,7 +24,6 @@ gravity = 0.4
 new_laser = True
 laser = []
 distance = 0
-high_score = 0
 restart_cmd = False
 new_bg = 0
 
@@ -34,6 +33,12 @@ rocket_active = False
 rocket_delay = 0
 rocket_coords = []
 
+# load in player info in beginning
+file = open('player_info.txt', 'r')
+read = file.readlines()
+high_score = int(read[0])
+lifetime = int(read[1])
+file.close()
 
 # all code to move lines accross screen and draw bg images
 def draw_screen(line_list, lase):
@@ -147,6 +152,18 @@ def draw_pause():
     screen.blit(surface, (0,0))
     return restart_btn, quit_btn
 
+def modify_player_info():
+    global high_score, lifetime
+    if distance > high_score:
+        high_score = distance
+    lifetime += distance
+    file = open('player_info.txt', 'w')
+    file.write(str(int(high_score)) + '\n')
+    file.write(str(int(lifetime)))
+    file.close
+
+
+
 run = True
 while run:
     timer.tick(fps)
@@ -183,6 +200,7 @@ while run:
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            modify_player_info()
             run = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -199,6 +217,7 @@ while run:
             if restart.collidepoint(event.pos):
                 restart_cmd = True
             if quits.collidepoint(event.pos):
+                modify_player_info()
                 run = False
     
     if not pause:
@@ -225,6 +244,7 @@ while run:
         bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 
     if restart_cmd:
+        modify_player_info()
         distance = 0
         rocket_active = False
         rocket_counter = 0
