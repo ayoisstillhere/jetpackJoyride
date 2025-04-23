@@ -143,12 +143,14 @@ def draw_rocket(coords, mode):
 
 def draw_pause():
     pygame.draw.rect(surface, (128, 128, 128, 150), [0, 0, WIDTH, HEIGHT])
-    pygame.draw.rect(surface, 'dark gray', [200, 250, 600, 50], 0, 10)
+    pygame.draw.rect(surface, 'dark gray', [200, 150, 600, 50], 0, 10)
     surface.blit(font.render('Game Paused. Escape Btn Resumes', True, 'black'), (220, 160))
     restart_btn = pygame.draw.rect(surface, 'white', [200, 220, 280, 50], 0, 10)
     surface.blit(font.render('Restart', True, 'black'), (220, 230))
     quit_btn = pygame.draw.rect(surface, 'white', [520, 220, 280, 50], 0, 10)
     surface.blit(font.render('Quit', True, 'black'), (540, 230))
+    pygame.draw.rect(surface, 'dark gray', [200, 300, 600, 50], 0, 10)
+    surface.blit(font.render(f'Lifetime Distance Ran: {int(lifetime)}', True, 'black'), (220, 310))
     screen.blit(surface, (0,0))
     return restart_btn, quit_btn
 
