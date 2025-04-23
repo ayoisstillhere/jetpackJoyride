@@ -27,6 +27,12 @@ distance = 0
 high_score = 0
 restart_cmd = False
 
+# rocket variables
+rocket_counter = 0
+rocket_active = False
+rocket_delay = 0
+rocket_coords = []
+
 
 # all code to move lines accross screen and draw bg images
 def draw_screen(line_list, lase):
@@ -91,6 +97,9 @@ def check_colliding():
         coll[1] = True
     if laser_line.colliderect(player):
         rstrt = True
+    if rocket_active:
+        if rocket.colliderect(player):
+            rstrt = True
     return coll, rstrt
 
 def generate_laser():
@@ -108,7 +117,23 @@ def generate_laser():
             new_laser = [[WIDTH + offset, laser_y], [WIDTH + offset + laser_height, laser_y]]
     return new_laser
 
+def draw_rocket(coords, mode):
+    if mode == 0:
+        rock = pygame.draw.rect(screen, 'dark red', [coords[0] - 60, coords[1] - 25, 50, 50], 0, 5)
+        screen.blit(font.render('!', True, 'black'), (coords[0] - 40, coords[1]-20))
+        if not pause:
+            if coords[1] > player_y + 10:
+                coords[1] -= 3
+            else:
+                coords[1] += 3
+    else:
+        rock = pygame.draw.rect(screen, 'red', [coords[0], coords[1] - 10, 50, 20], 0, 5)
+        pygame.draw.ellipse(screen, 'orange', [coords[0] + 50, coords[1] - 10, 50, 20], 7)
+        if not pause:
+            coords[0] -= 10 + game_speed
 
+
+    return coords, rock
 
 run = True
 while run:
@@ -121,6 +146,24 @@ while run:
         laser = generate_laser()
         new_laser = False
     linse, top_plat, bot_plat, laser, laser_line = draw_screen(lines, laser)
+
+    if not rocket_active and not pause:
+        rocket_counter += 1
+    if rocket_counter > 180:
+        rocket_counter = 0
+        rocket_active = True
+        rocket_delay = 0
+        rocket_coords = [WIDTH, HEIGHT/2]
+    if rocket_active:
+        if rocket_delay < 90:
+            if not pause:
+                rocket_delay += 1
+            rocket_coords, rocket = draw_rocket(rocket_coords, 0)
+        else:
+            rocket_coords, rocket = draw_rocket(rocket_coords, 1)
+        if rocket_coords[0] < -50:
+            rocket_active = False
+
     player = draw_payer()
     colliding, restart_cmd = check_colliding()
 
@@ -155,6 +198,8 @@ while run:
 
     if restart_cmd:
         distance = 0
+        rocket_active = False
+        rocket_counter = 0
         pause = False
         player_y = init_y
         y_velocity = 0
