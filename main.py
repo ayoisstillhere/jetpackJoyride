@@ -23,6 +23,8 @@ y_velocity = 0
 gravity = 0.4
 new_laser = True
 laser = []
+distance = 0
+high_score = 0
 
 
 # all code to move lines accross screen and draw bg images
@@ -44,6 +46,8 @@ def draw_screen(line_list, lase):
     lase_line = pygame.draw.line(screen, 'yellow', (lase[0][0], lase[0][1]), (lase[1][0], lase[1][1]), 10)
     pygame.draw.circle(screen, 'yellow', (lase[0][0], lase[0][1]), 12)
     pygame.draw.circle(screen, 'yellow', (lase[1][0], lase[1][1]), 12)
+    screen.blit(font.render(f'Distance: {int(distance)} m', True, 'white'), (10,10))
+    screen.blit(font.render(f'High Score: {int(high_score)} m', True, 'white'), (10,70))
     return line_list, top, bot, lase, lase_line
 
 # draw player including animated states
@@ -127,6 +131,7 @@ while run:
                 booster = False
     
     if not pause:
+        distance += game_speed
         if booster:
             y_velocity -= gravity
         else:
@@ -135,8 +140,18 @@ while run:
             y_velocity = 0
         player_y += y_velocity 
 
+    # progressive speed increases
+    if distance < 50000:
+        game_speed = 1 + (distance // 500) / 10
+    else:
+        game_speed = 11
+
     if laser[0][0] < 0 and laser[1][0] < 0:
         new_laser = True
+
+    if distance > high_score:
+        high_score = int(distance)
+
 
     pygame.display.flip()
 pygame.quit()
