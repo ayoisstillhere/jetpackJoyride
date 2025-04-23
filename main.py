@@ -25,6 +25,7 @@ new_laser = True
 laser = []
 distance = 0
 high_score = 0
+restart_cmd = False
 
 
 # all code to move lines accross screen and draw bg images
@@ -83,11 +84,14 @@ def draw_payer():
 
 def check_colliding():
     coll = [False, False]
+    rstrt = False
     if player.colliderect(bot_plat):
         coll[0] = True
     elif player.colliderect(top_plat):
         coll[1] = True
-    return coll
+    if laser_line.colliderect(player):
+        rstrt = True
+    return coll, rstrt
 
 def generate_laser():
     # 0 - horiz, 1 - vert
@@ -118,7 +122,7 @@ while run:
         new_laser = False
     linse, top_plat, bot_plat, laser, laser_line = draw_screen(lines, laser)
     player = draw_payer()
-    colliding = check_colliding()
+    colliding, restart_cmd = check_colliding()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -147,6 +151,14 @@ while run:
         game_speed = 11
 
     if laser[0][0] < 0 and laser[1][0] < 0:
+        new_laser = True
+
+    if restart_cmd:
+        distance = 0
+        pause = False
+        player_y = init_y
+        y_velocity = 0
+        restart_cmd = 0
         new_laser = True
 
     if distance > high_score:
