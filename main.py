@@ -135,6 +135,17 @@ def draw_rocket(coords, mode):
 
     return coords, rock
 
+def draw_pause():
+    pygame.draw.rect(surface, (128, 128, 128, 150), [0, 0, WIDTH, HEIGHT])
+    pygame.draw.rect(surface, 'dark gray', [200, 250, 600, 50], 0, 10)
+    surface.blit(font.render('Game Paused. Escape Btn Resumes', True, 'black'), (220, 160))
+    restart_btn = pygame.draw.rect(surface, 'white', [200, 220, 280, 50], 0, 10)
+    surface.blit(font.render('Restart', True, 'black'), (220, 230))
+    quit_btn = pygame.draw.rect(surface, 'white', [520, 220, 280, 50], 0, 10)
+    surface.blit(font.render('Quit', True, 'black'), (540, 230))
+    screen.blit(surface, (0,0))
+    return restart_btn, quit_btn
+
 run = True
 while run:
     timer.tick(fps)
@@ -146,6 +157,8 @@ while run:
         laser = generate_laser()
         new_laser = False
     linse, top_plat, bot_plat, laser, laser_line = draw_screen(lines, laser)
+    if pause:
+        restart, quits = draw_pause()
 
     if not rocket_active and not pause:
         rocket_counter += 1
@@ -171,11 +184,21 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                if pause:
+                    pause = False
+                else:
+                    pause = True
             if event.key == pygame.K_SPACE and not pause:
                 booster = True
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
                 booster = False
+        if event.type == pygame.MOUSEBUTTONDOWN and pause:
+            if restart.collidepoint(event.pos):
+                restart_cmd = True
+            if quits.collidepoint(event.pos):
+                run = False
     
     if not pause:
         distance += game_speed
