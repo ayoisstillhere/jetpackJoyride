@@ -1,5 +1,6 @@
 import random
 import pygame
+import math
 
 pygame.init()
 
@@ -191,19 +192,56 @@ def spawn_coins(pattern=None):
     y_min, y_max = 80, HEIGHT - 80
     x = WIDTH + 40
     if pattern is None:
-        pattern = random.choice(['single', 'horiz', 'vert'])
+        pattern = random.choice(['single', 'horiz', 'vert', 'diag_up', 'diag_down', 'circle', 'cluster'])
     if pattern == 'single':
         y = random.randint(y_min, y_max)
         coins.append(Coin(x, y))
     elif pattern == 'horiz':
         y = random.randint(y_min, y_max)
-        for i in range(5):
+        n = random.randint(3, 8)
+        for i in range(n):
             coins.append(Coin(x + i*40, y))
     elif pattern == 'vert':
         y = random.randint(y_min+100, y_max-100)
-        for i in range(5):
+        n = random.randint(3, 8)
+        for i in range(n):
             coins.append(Coin(x, y + i*40))
-    # Optional: add more patterns
+    elif pattern == 'diag_up':
+        y = random.randint(y_min+100, y_max-100)
+        n = random.randint(3, 7)
+        for i in range(n):
+            coins.append(Coin(x + i*35, y - i*35))
+    elif pattern == 'diag_down':
+        y = random.randint(y_min+100, y_max-100)
+        n = random.randint(3, 7)
+        for i in range(n):
+            coins.append(Coin(x + i*35, y + i*35))
+    elif pattern == 'circle':
+        n = random.randint(6, 10)
+        radius = random.randint(40, 70)
+        center_y = random.randint(y_min+radius, y_max-radius)
+        center_x = x + 60
+        for i in range(n):
+            angle = 2 * 3.14159 * i / n
+            cx = center_x + int(radius * math.cos(angle))
+            cy = center_y + int(radius * math.sin(angle))
+            coins.append(Coin(cx, cy))
+    elif pattern == 'cluster':
+        rows = random.randint(2, 4)
+        cols = random.randint(3, 6)
+        grid_spacing_x = 32
+        grid_spacing_y = 32
+        center_y = random.randint(y_min + 40, y_max - 40 - rows * grid_spacing_y)
+        center_x = x + 40
+        for row in range(rows):
+            for col in range(cols):
+                # Add a small random offset for a more natural look
+                offset_x = random.randint(-6, 6)
+                offset_y = random.randint(-6, 6)
+                coins.append(Coin(
+                    center_x + col * grid_spacing_x + offset_x,
+                    center_y + row * grid_spacing_y + offset_y
+                ))
 
 def update_coins():
     global coins, coin_count
