@@ -281,8 +281,6 @@ while run:
         laser = generate_laser()
         new_laser = False
     linse, top_plat, bot_plat, laser, laser_line = draw_screen(lines, laser)
-    if pause:
-        restart, quits = draw_pause()
 
     # --- COIN SYSTEM: Spawning ---
     if not pause and distance - last_coin_spawn > coin_spawn_distance:
@@ -377,6 +375,8 @@ while run:
     if distance > high_score:
         high_score = int(distance)
 
+    if pause:
+        restart, quits = draw_pause()
 
     pygame.display.flip()
 pygame.quit()
