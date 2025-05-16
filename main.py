@@ -231,17 +231,16 @@ def spawn_coins(pattern=None):
         cols = random.randint(3, 6)
         grid_spacing_x = 32
         grid_spacing_y = 32
-        center_y = random.randint(y_min + 40, y_max - 40 - rows * grid_spacing_y)
-        center_x = x + 40
+        total_height = (rows - 1) * grid_spacing_y
+        total_width = (cols - 1) * grid_spacing_x
+        # Center the grid vertically and horizontally within the allowed area
+        center_y = random.randint(y_min + total_height // 2, y_max - total_height // 2)
+        center_x = x + 40 + total_width // 2
         for row in range(rows):
             for col in range(cols):
-                # Add a small random offset for a more natural look
-                offset_x = random.randint(-6, 6)
-                offset_y = random.randint(-6, 6)
-                coins.append(Coin(
-                    center_x + col * grid_spacing_x + offset_x,
-                    center_y + row * grid_spacing_y + offset_y
-                ))
+                coin_x = center_x + (col - (cols - 1) / 2) * grid_spacing_x
+                coin_y = center_y + (row - (rows - 1) / 2) * grid_spacing_y
+                coins.append(Coin(int(coin_x), int(coin_y)))
 
 def update_coins():
     global coins, coin_count
