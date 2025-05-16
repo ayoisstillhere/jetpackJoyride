@@ -247,7 +247,8 @@ def update_coins():
     global coins, coin_count
     remove_list = []
     for coin in coins:
-        coin.move(game_speed)
+        if not pause:
+            coin.move(game_speed)
         if coin.x < -coin.radius:
             remove_list.append(coin)
         elif player.colliderect(coin.rect):
