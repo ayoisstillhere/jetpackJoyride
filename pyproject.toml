@@ -1,0 +1,9 @@
+[project]
+name = "jetpackjoyride"
+version = "0.1.0"
+description = "Endless runner with AI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    stable-baselines[mpi]
+]
