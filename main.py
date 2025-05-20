@@ -41,13 +41,6 @@ last_coin_spawn = 0
 
 run_frames, jump_up_img, jump_down_img, flame_img = load_player_assets()
 
-# Game states
-STATE_START = 0
-STATE_PLAYING = 1
-STATE_PAUSED = 2
-STATE_GAMEOVER = 3
-game_state = STATE_START
-
 run = True
 while run:
     timer.tick(FPS)
