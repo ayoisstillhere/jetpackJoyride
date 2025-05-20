@@ -279,10 +279,11 @@ run_frames, jump_up_img, jump_down_img, flame_img = load_player_assets() # load 
 run = True
 while run:
     timer.tick(fps)
-    if counter < 40:
-        counter += 1
-    else:
-        counter = 0
+    if not pause:
+        if counter < 40:
+            counter += 1
+        else:
+            counter = 0
     if new_laser:
         laser = generate_laser()
         new_laser = False
