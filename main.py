@@ -65,6 +65,7 @@ while run:
                     pause = False
                     player_y = INIT_Y
                     y_velocity = 0
+                    booster = False  # Ensure booster is reset
                     new_laser = True
                     coins.clear()
                     coin_count = 0
@@ -159,6 +160,7 @@ while run:
                     pause = False
                     player_y = INIT_Y
                     y_velocity = 0
+                    booster = False  # Ensure booster is reset
                     new_laser = True
                     coins.clear()
                     coin_count = 0
@@ -225,6 +227,7 @@ while run:
                     pause = False
                     player_y = INIT_Y
                     y_velocity = 0
+                    booster = False  # Ensure booster is reset
                     new_laser = True
                     coins.clear()
                     coin_count = 0

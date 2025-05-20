@@ -38,7 +38,7 @@ def draw_pause(surface, font, lifetime, screen):
 
 def draw_start_screen(screen, font):
     screen.fill('black')
-    title = font.render("Jetpack Joyride", True, 'white')
+    title = font.render("Pygame Joyride", True, 'white')
     start_btn = pygame.draw.rect(screen, 'white', [350, 300, 300, 60], 0, 10)
     screen.blit(title, (WIDTH//2 - title.get_width()//2, 180))
     screen.blit(font.render("Start", True, 'black'), (WIDTH//2 - 40, 315))
