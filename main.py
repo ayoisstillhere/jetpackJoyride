@@ -1,389 +1,185 @@
-import random
 import pygame
-import math
+import random
+from settings import *
+from player import load_player_assets, draw_player
+from coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
+from laser import generate_laser
+from rocket import draw_rocket
+from ui import draw_screen, draw_pause
+from storage import load_player_info, save_player_info
 
 pygame.init()
-
-WIDTH = 1000
-HEIGHT = 600
 screen = pygame.display.set_mode([WIDTH, HEIGHT])
 surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
 pygame.display.set_caption("Ayo's Pygame Joyride")
-fps = 60
 timer = pygame.time.Clock()
 font = pygame.font.Font('freesansbold.ttf', 32)
-bg_color = (128, 128, 128)
+
 lines = [0, WIDTH/4, 2*WIDTH/4, 3*WIDTH/4]
 game_speed = 3
 pause = False
-init_y = HEIGHT - 130
-player_y = init_y
+player_y = INIT_Y
 booster = False
 counter = 0
 y_velocity = 0
-gravity = 0.4
 new_laser = True
 laser = []
 distance = 0
 restart_cmd = False
 new_bg = 0
 
-# rocket variables
 rocket_counter = 0
 rocket_active = False
 rocket_delay = 0
 rocket_coords = []
 
-# load in player info in beginning
-file = open('player_info.txt', 'r')
-read = file.readlines()
-high_score = int(read[0])
-lifetime = int(read[1])
-file.close()
-
-
-# --- Coin System Variables ---
-class Coin:
-    def __init__(self, x, y, value=1):
-        self.x = x
-        self.y = y
-        self.radius = 15
-        self.value = value
-        self.rect = pygame.Rect(self.x - self.radius, self.y - self.radius, self.radius*2, self.radius*2)
-    def move(self, speed):
-        self.x -= speed
-        self.rect.x = self.x - self.radius
-    def draw(self, surf):
-        pygame.draw.circle(surf, (255, 215, 0), (int(self.x), int(self.y)), self.radius)
-        pygame.draw.circle(surf, (255, 255, 255), (int(self.x), int(self.y)), self.radius-6)
+high_score, lifetime = load_player_info()
 
 coins = []
 coin_count = 0
-coin_spawn_distance = 400  # Distance between coin spawns
 last_coin_spawn = 0
 
+run_frames, jump_up_img, jump_down_img, flame_img = load_player_assets()
 
-# all code to move lines accross screen and draw bg images
-def draw_screen(line_list, lase):
-    screen.fill('black')
-    pygame.draw.rect(surface, (bg_color[0], bg_color[1], bg_color[2], 50), [0,0, WIDTH, HEIGHT])
-    screen.blit(surface, (0,0))
-    top = pygame.draw.rect(screen, 'gray', [0, 0, WIDTH, 50])
-    bot = pygame.draw.rect(screen, 'gray', [0, HEIGHT - 50, WIDTH, 50])
-    for i in range(len(line_list)):
-        pygame.draw.line(screen, 'black', (line_list[i], 0), (line_list[i], 50), 3)
-        pygame.draw.line(screen, 'black', (line_list[i], HEIGHT - 50), (line_list[i], HEIGHT), 3)
-        if not pause:
-            line_list[i] -= game_speed
-            lase[0][0] -= game_speed
-            lase[1][0] -= game_speed
-        if line_list[i] < -0:
-            line_list[i] = WIDTH
-    lase_line = pygame.draw.line(screen, 'yellow', (lase[0][0], lase[0][1]), (lase[1][0], lase[1][1]), 10)
-    pygame.draw.circle(screen, 'yellow', (lase[0][0], lase[0][1]), 12)
-    pygame.draw.circle(screen, 'yellow', (lase[1][0], lase[1][1]), 12)
-    screen.blit(font.render(f'Distance: {int(distance)} m', True, 'white'), (10,10))
-    screen.blit(font.render(f'High Score: {int(high_score)} m', True, 'white'), (10,70))
-    return line_list, top, bot, lase, lase_line
-
-# load player assets
-def load_player_assets():
-    run_frames = []
-    for i in range(0, 6):  # 6 frames of run animation
-        img = pygame.image.load(f"assets/run/run{i}.png").convert_alpha() # load run animation
-        run_frames.append(pygame.transform.scale(img, (55, 60))) # scale to 55x60
-
-    jump_up = pygame.image.load("assets/jump_up.png").convert_alpha() # load jump up animation
-    jump_up = pygame.transform.scale(jump_up, (55, 60)) # scale to 55x60
-
-    jump_down = pygame.image.load("assets/jump_down.png").convert_alpha() # load jump down animation
-    jump_down = pygame.transform.scale(jump_down, (55, 60)) # scale to 55x60
-
-    flame_img = pygame.image.load("assets/flame.png").convert_alpha() # load flame animation
-    flame_img = pygame.transform.scale(flame_img, (20, 30))  # scale to 20x30
-
-    return run_frames, jump_up, jump_down, flame_img
-
-# draw player including animated states
-def draw_player():
-    global counter # counter for animation
-    play_rect = pygame.Rect(120, player_y + 10, 55, 60) # player hitbox
-
-    if player_y < init_y:  # player is in the air
-        if y_velocity < 0:  # player is going up
-            if booster:
-                screen.blit(flame_img, (135, player_y + 60))  # flame on the feet
-            screen.blit(jump_up_img, (120, player_y)) # draw jump up animation
-        else:
-            screen.blit(jump_down_img, (120, player_y)) # draw jump down animation  
-    else:
-        frame_index = (counter // 6) % len(run_frames) # control frame rate
-        screen.blit(run_frames[frame_index], (120, player_y)) # draw player
-
-    return play_rect
-
-def check_colliding():
-    coll = [False, False]
-    rstrt = False
-    if player.colliderect(bot_plat):
-        coll[0] = True
-    elif player.colliderect(top_plat):
-        coll[1] = True
-    if laser_line.colliderect(player):
-        rstrt = True
-    if rocket_active:
-        if rocket.colliderect(player):
-            rstrt = True
-    return coll, rstrt
-
-def generate_laser():
-    # 0 - horiz, 1 - vert
-    laser_type = random.randint(0, 1)
-    offset = random.randint(10, 300)
-    match laser_type:
-        case 0:
-            laser_width = random.randint(100, 300)
-            laser_y = random.randint(100, HEIGHT - 100)
-            new_laser = [[WIDTH + offset, laser_y], [WIDTH + offset + laser_width, laser_y]]
-        case 1:
-            laser_height = random.randint(100, 300)
-            laser_y = random.randint(100, HEIGHT - 400)
-            new_laser = [[WIDTH + offset, laser_y], [WIDTH + offset + laser_height, laser_y]]
-    return new_laser
-
-def draw_rocket(coords, mode):
-    if mode == 0:
-        rock = pygame.draw.rect(screen, 'dark red', [coords[0] - 60, coords[1] - 25, 50, 50], 0, 5)
-        screen.blit(font.render('!', True, 'black'), (coords[0] - 40, coords[1]-20))
-        if not pause:
-            if coords[1] > player_y + 10:
-                coords[1] -= 3
-            else:
-                coords[1] += 3
-    else:
-        rock = pygame.draw.rect(screen, 'red', [coords[0], coords[1] - 10, 50, 20], 0, 5)
-        pygame.draw.ellipse(screen, 'orange', [coords[0] + 50, coords[1] - 10, 50, 20], 7)
-        if not pause:
-            coords[0] -= 10 + game_speed
-
-
-    return coords, rock
-
-def draw_pause():
-    pygame.draw.rect(surface, (128, 128, 128, 150), [0, 0, WIDTH, HEIGHT])
-    pygame.draw.rect(surface, 'dark gray', [200, 150, 600, 50], 0, 10)
-    surface.blit(font.render('Game Paused. Escape Btn Resumes', True, 'black'), (220, 160))
-    restart_btn = pygame.draw.rect(surface, 'white', [200, 220, 280, 50], 0, 10)
-    surface.blit(font.render('Restart', True, 'black'), (220, 230))
-    quit_btn = pygame.draw.rect(surface, 'white', [520, 220, 280, 50], 0, 10)
-    surface.blit(font.render('Quit', True, 'black'), (540, 230))
-    pygame.draw.rect(surface, 'dark gray', [200, 300, 600, 50], 0, 10)
-    surface.blit(font.render(f'Lifetime Distance Ran: {int(lifetime)}', True, 'black'), (220, 310))
-    screen.blit(surface, (0,0))
-    return restart_btn, quit_btn
-
-def modify_player_info():
-    global high_score, lifetime
-    if distance > high_score:
-        high_score = distance
-    lifetime += distance
-    file = open('player_info.txt', 'w')
-    file.write(str(int(high_score)) + '\n')
-    file.write(str(int(lifetime)))
-    file.close
-
-
-def spawn_coins(pattern=None):
-    global coins
-    y_min, y_max = 80, HEIGHT - 80
-    x = WIDTH + 40
-    if pattern is None:
-        pattern = random.choice(['single', 'horiz', 'vert', 'diag_up', 'diag_down', 'circle', 'cluster'])
-    if pattern == 'single':
-        y = random.randint(y_min, y_max)
-        coins.append(Coin(x, y))
-    elif pattern == 'horiz':
-        y = random.randint(y_min, y_max)
-        n = random.randint(3, 8)
-        for i in range(n):
-            coins.append(Coin(x + i*40, y))
-    elif pattern == 'vert':
-        y = random.randint(y_min+100, y_max-100)
-        n = random.randint(3, 8)
-        for i in range(n):
-            coins.append(Coin(x, y + i*40))
-    elif pattern == 'diag_up':
-        y = random.randint(y_min+100, y_max-100)
-        n = random.randint(3, 7)
-        for i in range(n):
-            coins.append(Coin(x + i*35, y - i*35))
-    elif pattern == 'diag_down':
-        y = random.randint(y_min+100, y_max-100)
-        n = random.randint(3, 7)
-        for i in range(n):
-            coins.append(Coin(x + i*35, y + i*35))
-    elif pattern == 'circle':
-        n = random.randint(6, 10)
-        radius = random.randint(40, 70)
-        center_y = random.randint(y_min+radius, y_max-radius)
-        center_x = x + 60
-        for i in range(n):
-            angle = 2 * 3.14159 * i / n
-            cx = center_x + int(radius * math.cos(angle))
-            cy = center_y + int(radius * math.sin(angle))
-            coins.append(Coin(cx, cy))
-    elif pattern == 'cluster':
-        rows = random.randint(2, 4)
-        cols = random.randint(3, 6)
-        grid_spacing_x = 32
-        grid_spacing_y = 32
-        total_height = (rows - 1) * grid_spacing_y
-        total_width = (cols - 1) * grid_spacing_x
-        # Center the grid vertically and horizontally within the allowed area
-        center_y = random.randint(y_min + total_height // 2, y_max - total_height // 2)
-        center_x = x + 40 + total_width // 2
-        for row in range(rows):
-            for col in range(cols):
-                coin_x = center_x + (col - (cols - 1) / 2) * grid_spacing_x
-                coin_y = center_y + (row - (rows - 1) / 2) * grid_spacing_y
-                coins.append(Coin(int(coin_x), int(coin_y)))
-
-def update_coins():
-    global coins, coin_count
-    remove_list = []
-    for coin in coins:
-        if not pause:
-            coin.move(game_speed)
-        if coin.x < -coin.radius:
-            remove_list.append(coin)
-        elif player.colliderect(coin.rect):
-            coin_count += coin.value
-            remove_list.append(coin)
-            # Optional: play sound here
-    for coin in remove_list:
-        coins.remove(coin)
-
-def draw_coins():
-    for coin in coins:
-        coin.draw(screen)
-
-def draw_coin_counter():
-    coin_icon_x = WIDTH - 180
-    coin_icon_y = 10
-    pygame.draw.circle(screen, (255, 215, 0), (coin_icon_x, coin_icon_y+20), 15)
-    pygame.draw.circle(screen, (255, 255, 255), (coin_icon_x, coin_icon_y+20), 9)
-    screen.blit(font.render(f"x {coin_count}", True, 'white'), (coin_icon_x+30, coin_icon_y+5))
-
-run_frames, jump_up_img, jump_down_img, flame_img = load_player_assets() # load player assets
+# ...existing code...
 
 run = True
 while run:
-    timer.tick(fps)
+    timer.tick(FPS)
     if not pause:
         if counter < 40:
             counter += 1
         else:
             counter = 0
+
+    # Laser generation
     if new_laser:
         laser = generate_laser()
         new_laser = False
-    linse, top_plat, bot_plat, laser, laser_line = draw_screen(lines, laser)
 
-    # --- COIN SYSTEM: Spawning ---
-    if not pause and distance - last_coin_spawn > coin_spawn_distance:
-        spawn_coins()
+    # Draw background, lines, and laser
+    lines, top_plat, bot_plat, laser, laser_line = draw_screen(
+        screen, surface, font, BG_COLOR, lines, laser, pause, game_speed, distance, high_score
+    )
+
+    # Coin spawning
+    if not pause and distance - last_coin_spawn > COIN_SPAWN_DISTANCE:
+        spawn_coins(coins)
         last_coin_spawn = distance
 
-    # --- COIN SYSTEM: Update and Draw ---
-    update_coins()
-    draw_coins()
-    draw_coin_counter()
+    # Coin update and draw
+    coin_count = update_coins(coins, coin_count, pause, game_speed, pygame.Rect(120, player_y + 10, 55, 60))
+    draw_coins(coins, screen)
+    draw_coin_counter(screen, font, coin_count)
 
+    # Rocket logic
     if not rocket_active and not pause:
         rocket_counter += 1
     if rocket_counter > 180:
         rocket_counter = 0
         rocket_active = True
         rocket_delay = 0
-        rocket_coords = [WIDTH, HEIGHT/2]
+        rocket_coords = [WIDTH, HEIGHT // 2]
     if rocket_active:
         if rocket_delay < 90:
             if not pause:
                 rocket_delay += 1
-            rocket_coords, rocket = draw_rocket(rocket_coords, 0)
+            rocket_coords, rocket = draw_rocket(screen, font, rocket_coords, 0, pause, player_y, game_speed)
         else:
-            rocket_coords, rocket = draw_rocket(rocket_coords, 1)
+            rocket_coords, rocket = draw_rocket(screen, font, rocket_coords, 1, pause, player_y, game_speed)
         if rocket_coords[0] < -50:
             rocket_active = False
 
-    player = draw_player()
-    colliding, restart_cmd = check_colliding()
+    # Draw player and get rect
+    player = draw_player(
+        screen, player_y, INIT_Y, y_velocity, booster, counter,
+        run_frames, jump_up_img, jump_down_img, flame_img
+    )
 
+    # Collision checks
+    colliding_top = player.colliderect(top_plat)
+    colliding_bot = player.colliderect(bot_plat)
+    restart_cmd = False
+    if laser_line.colliderect(player):
+        restart_cmd = True
+    # Rocket collision
+    if rocket_active:
+        if 'rocket' in locals() and rocket.colliderect(player):
+            restart_cmd = True
+
+    # Event handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            modify_player_info()
+            save_player_info(high_score, lifetime)
             run = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                if pause:
-                    pause = False
-                else:
-                    pause = True
+                pause = not pause
             if event.key == pygame.K_SPACE and not pause:
                 booster = True
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
                 booster = False
         if event.type == pygame.MOUSEBUTTONDOWN and pause:
+            restart, quits = draw_pause(surface, font, lifetime, screen)
             if restart.collidepoint(event.pos):
                 restart_cmd = True
             if quits.collidepoint(event.pos):
-                modify_player_info()
+                save_player_info(high_score, lifetime)
                 run = False
-    
+
+    # Physics and game state updates
     if not pause:
         distance += game_speed
         if booster:
-            y_velocity -= gravity
+            y_velocity -= GRAVITY
         else:
-            y_velocity += gravity
-        if (colliding[0] and y_velocity > 0) or (colliding[1] and y_velocity < 0):
+            y_velocity += GRAVITY
+        if (colliding_bot and y_velocity > 0) or (colliding_top and y_velocity < 0):
             y_velocity = 0
-        player_y += y_velocity 
+        player_y += y_velocity
 
-    # progressive speed increases
+    # Progressive speed
     if distance < 50000:
         game_speed = 1 + (distance // 500) / 10
     else:
         game_speed = 11
 
+    # Laser reset
     if laser[0][0] < 0 and laser[1][0] < 0:
         new_laser = True
 
+    # Background color change
     if distance - new_bg > 500:
         new_bg = distance
-        bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+        BG_COLOR = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 
+    # Restart logic
     if restart_cmd:
-        modify_player_info()
+        if distance > high_score:
+            high_score = int(distance)
+        lifetime += int(distance)
+        save_player_info(high_score, lifetime)
         distance = 0
         rocket_active = False
         rocket_counter = 0
         pause = False
-        player_y = init_y
+        player_y = INIT_Y
         y_velocity = 0
-        restart_cmd = 0
+        restart_cmd = False
         new_laser = True
         coins.clear()
         coin_count = 0
         last_coin_spawn = 0
 
-
+    # High score update
     if distance > high_score:
         high_score = int(distance)
 
+    # Pause menu
     if pause:
-        restart, quits = draw_pause()
+        restart, quits = draw_pause(surface, font, lifetime, screen)
 
     pygame.display.flip()
+
 pygame.quit()
