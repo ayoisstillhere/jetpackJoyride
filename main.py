@@ -11,7 +11,7 @@ from storage import load_player_info, save_player_info
 pygame.init()
 screen = pygame.display.set_mode([WIDTH, HEIGHT])
 surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-pygame.display.set_caption("Ayo's Pygame Joyride")
+pygame.display.set_caption("Pygame Joyride")
 timer = pygame.time.Clock()
 font = pygame.font.Font('freesansbold.ttf', 32)
 
