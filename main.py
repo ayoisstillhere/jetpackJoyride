@@ -86,36 +86,41 @@ def draw_screen(line_list, lase):
     screen.blit(font.render(f'High Score: {int(high_score)} m', True, 'white'), (10,70))
     return line_list, top, bot, lase, lase_line
 
+# load player assets
+def load_player_assets():
+    run_frames = []
+    for i in range(0, 6):  # 6 frames of run animation
+        img = pygame.image.load(f"assets/run/run{i}.png").convert_alpha() # load run animation
+        run_frames.append(pygame.transform.scale(img, (55, 60))) # scale to 55x60
+
+    jump_up = pygame.image.load("assets/jump_up.png").convert_alpha() # load jump up animation
+    jump_up = pygame.transform.scale(jump_up, (55, 60)) # scale to 55x60
+
+    jump_down = pygame.image.load("assets/jump_down.png").convert_alpha() # load jump down animation
+    jump_down = pygame.transform.scale(jump_down, (55, 60)) # scale to 55x60
+
+    flame_img = pygame.image.load("assets/flame.png").convert_alpha() # load flame animation
+    flame_img = pygame.transform.scale(flame_img, (20, 30))  # scale to 20x30
+
+    return run_frames, jump_up, jump_down, flame_img
+
 # draw player including animated states
-def draw_payer():
-    play = pygame.rect.Rect((120, player_y + 10), (25, 60))
-    # pygame.draw.rect(screen, 'green', play, 5) # hittbox
-    if player_y < init_y or pause:
-        if booster:
-            pygame.draw.ellipse(screen, 'red', [100, player_y + 50, 20, 30])
-            pygame.draw.ellipse(screen, 'orange', [105, player_y + 50, 10, 30])
-            pygame.draw.ellipse(screen, 'yellow', [110, player_y + 50, 5, 30])
-        pygame.draw.rect(screen, 'yellow', [128, player_y + 60, 10, 20], 0, 3)
-        pygame.draw.rect(screen, 'orange', [130, player_y + 60, 10, 20], 0, 3)
-    else:
-        if counter < 10:
-            pygame.draw.line(screen, 'yellow', (128, player_y + 60), (140, player_y + 80), 10)
-            pygame.draw.line(screen, 'orange', (130, player_y + 60), (120, player_y + 80), 10)
-        elif 10 <= counter < 20: 
-            pygame.draw.rect(screen, 'yellow', [128, player_y + 60, 10, 20], 0, 3)
-            pygame.draw.rect(screen, 'orange', [130, player_y + 60, 10, 20], 0, 3)
-        elif 20 <= counter < 30:
-            pygame.draw.line(screen, 'yellow', (128, player_y + 60), (120, player_y + 80), 10)
-            pygame.draw.line(screen, 'orange', (130, player_y + 60), (140, player_y + 80), 10)
+def draw_player():
+    global counter # counter for animation
+    play_rect = pygame.Rect(120, player_y + 10, 55, 60) # player hitbox
+
+    if player_y < init_y:  # player is in the air
+        if y_velocity < 0:  # player is going up
+            if booster:
+                screen.blit(flame_img, (135, player_y + 60))  # flame on the feet
+            screen.blit(jump_up_img, (120, player_y)) # draw jump up animation
         else:
-            pygame.draw.rect(screen, 'yellow', [128, player_y + 60, 10, 20], 0, 3)
-            pygame.draw.rect(screen, 'orange', [130, player_y + 60, 10, 20], 0, 3)
-    # jetpack, body and head
-    pygame.draw.rect(screen, 'white', [100, player_y + 20, 20, 30], 0, 5)
-    pygame.draw.ellipse(screen, 'orange', [120, player_y + 20, 30, 50])
-    pygame.draw.circle(screen, 'orange', (135, player_y + 15), 10)
-    pygame.draw.circle(screen, 'black', (138, player_y + 12), 3)
-    return play
+            screen.blit(jump_down_img, (120, player_y)) # draw jump down animation  
+    else:
+        frame_index = (counter // 6) % len(run_frames) # control frame rate
+        screen.blit(run_frames[frame_index], (120, player_y)) # draw player
+
+    return play_rect
 
 def check_colliding():
     coll = [False, False]
@@ -186,6 +191,7 @@ def modify_player_info():
     file.write(str(int(high_score)) + '\n')
     file.write(str(int(lifetime)))
     file.close
+
 
 def spawn_coins(pattern=None):
     global coins
@@ -268,6 +274,7 @@ def draw_coin_counter():
     pygame.draw.circle(screen, (255, 255, 255), (coin_icon_x, coin_icon_y+20), 9)
     screen.blit(font.render(f"x {coin_count}", True, 'white'), (coin_icon_x+30, coin_icon_y+5))
 
+run_frames, jump_up_img, jump_down_img, flame_img = load_player_assets() # load player assets
 
 run = True
 while run:
@@ -308,7 +315,7 @@ while run:
         if rocket_coords[0] < -50:
             rocket_active = False
 
-    player = draw_payer()
+    player = draw_player()
     colliding, restart_cmd = check_colliding()
 
     for event in pygame.event.get():
