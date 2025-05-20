@@ -35,3 +35,27 @@ def draw_pause(surface, font, lifetime, screen):
     surface.blit(font.render(f'Lifetime Distance Ran: {int(lifetime)}', True, 'black'), (220, 310))
     screen.blit(surface, (0,0))
     return restart_btn, quit_btn
+
+def draw_start_screen(screen, font):
+    screen.fill('black')
+    title = font.render("Jetpack Joyride", True, 'white')
+    start_btn = pygame.draw.rect(screen, 'white', [350, 300, 300, 60], 0, 10)
+    screen.blit(title, (WIDTH//2 - title.get_width()//2, 180))
+    screen.blit(font.render("Start", True, 'black'), (WIDTH//2 - 40, 315))
+    pygame.display.flip()
+    return start_btn
+
+def draw_gameover_screen(screen, font, distance, high_score, lifetime):
+    screen.fill('black')
+    over = font.render("Game Over!", True, 'red')
+    score = font.render(f"Distance: {int(distance)} m", True, 'white')
+    high = font.render(f"High Score: {int(high_score)} m", True, 'white')
+    life = font.render(f"Lifetime: {int(lifetime)} m", True, 'white')
+    restart_btn = pygame.draw.rect(screen, 'white', [350, 350, 300, 60], 0, 10)
+    screen.blit(over, (WIDTH//2 - over.get_width()//2, 150))
+    screen.blit(score, (WIDTH//2 - score.get_width()//2, 220))
+    screen.blit(high, (WIDTH//2 - high.get_width()//2, 260))
+    screen.blit(life, (WIDTH//2 - life.get_width()//2, 300))
+    screen.blit(font.render("Restart", True, 'black'), (WIDTH//2 - 55, 365))
+    pygame.display.flip()
+    return restart_btn
