@@ -1,5 +1,6 @@
 import random
 import pygame
+import math
 
 pygame.init()
 
@@ -39,6 +40,28 @@ read = file.readlines()
 high_score = int(read[0])
 lifetime = int(read[1])
 file.close()
+
+
+# --- Coin System Variables ---
+class Coin:
+    def __init__(self, x, y, value=1):
+        self.x = x
+        self.y = y
+        self.radius = 15
+        self.value = value
+        self.rect = pygame.Rect(self.x - self.radius, self.y - self.radius, self.radius*2, self.radius*2)
+    def move(self, speed):
+        self.x -= speed
+        self.rect.x = self.x - self.radius
+    def draw(self, surf):
+        pygame.draw.circle(surf, (255, 215, 0), (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(surf, (255, 255, 255), (int(self.x), int(self.y)), self.radius-6)
+
+coins = []
+coin_count = 0
+coin_spawn_distance = 400  # Distance between coin spawns
+last_coin_spawn = 0
+
 
 # all code to move lines accross screen and draw bg images
 def draw_screen(line_list, lase):
@@ -169,6 +192,88 @@ def modify_player_info():
     file.write(str(int(lifetime)))
     file.close
 
+
+def spawn_coins(pattern=None):
+    global coins
+    y_min, y_max = 80, HEIGHT - 80
+    x = WIDTH + 40
+    if pattern is None:
+        pattern = random.choice(['single', 'horiz', 'vert', 'diag_up', 'diag_down', 'circle', 'cluster'])
+    if pattern == 'single':
+        y = random.randint(y_min, y_max)
+        coins.append(Coin(x, y))
+    elif pattern == 'horiz':
+        y = random.randint(y_min, y_max)
+        n = random.randint(3, 8)
+        for i in range(n):
+            coins.append(Coin(x + i*40, y))
+    elif pattern == 'vert':
+        y = random.randint(y_min+100, y_max-100)
+        n = random.randint(3, 8)
+        for i in range(n):
+            coins.append(Coin(x, y + i*40))
+    elif pattern == 'diag_up':
+        y = random.randint(y_min+100, y_max-100)
+        n = random.randint(3, 7)
+        for i in range(n):
+            coins.append(Coin(x + i*35, y - i*35))
+    elif pattern == 'diag_down':
+        y = random.randint(y_min+100, y_max-100)
+        n = random.randint(3, 7)
+        for i in range(n):
+            coins.append(Coin(x + i*35, y + i*35))
+    elif pattern == 'circle':
+        n = random.randint(6, 10)
+        radius = random.randint(40, 70)
+        center_y = random.randint(y_min+radius, y_max-radius)
+        center_x = x + 60
+        for i in range(n):
+            angle = 2 * 3.14159 * i / n
+            cx = center_x + int(radius * math.cos(angle))
+            cy = center_y + int(radius * math.sin(angle))
+            coins.append(Coin(cx, cy))
+    elif pattern == 'cluster':
+        rows = random.randint(2, 4)
+        cols = random.randint(3, 6)
+        grid_spacing_x = 32
+        grid_spacing_y = 32
+        total_height = (rows - 1) * grid_spacing_y
+        total_width = (cols - 1) * grid_spacing_x
+        # Center the grid vertically and horizontally within the allowed area
+        center_y = random.randint(y_min + total_height // 2, y_max - total_height // 2)
+        center_x = x + 40 + total_width // 2
+        for row in range(rows):
+            for col in range(cols):
+                coin_x = center_x + (col - (cols - 1) / 2) * grid_spacing_x
+                coin_y = center_y + (row - (rows - 1) / 2) * grid_spacing_y
+                coins.append(Coin(int(coin_x), int(coin_y)))
+
+def update_coins():
+    global coins, coin_count
+    remove_list = []
+    for coin in coins:
+        if not pause:
+            coin.move(game_speed)
+        if coin.x < -coin.radius:
+            remove_list.append(coin)
+        elif player.colliderect(coin.rect):
+            coin_count += coin.value
+            remove_list.append(coin)
+            # Optional: play sound here
+    for coin in remove_list:
+        coins.remove(coin)
+
+def draw_coins():
+    for coin in coins:
+        coin.draw(screen)
+
+def draw_coin_counter():
+    coin_icon_x = WIDTH - 180
+    coin_icon_y = 10
+    pygame.draw.circle(screen, (255, 215, 0), (coin_icon_x, coin_icon_y+20), 15)
+    pygame.draw.circle(screen, (255, 255, 255), (coin_icon_x, coin_icon_y+20), 9)
+    screen.blit(font.render(f"x {coin_count}", True, 'white'), (coin_icon_x+30, coin_icon_y+5))
+
 run_frames, jump_up_img, jump_down_img, flame_img = load_player_assets() # load player assets
 
 run = True
@@ -182,8 +287,16 @@ while run:
         laser = generate_laser()
         new_laser = False
     linse, top_plat, bot_plat, laser, laser_line = draw_screen(lines, laser)
-    if pause:
-        restart, quits = draw_pause()
+
+    # --- COIN SYSTEM: Spawning ---
+    if not pause and distance - last_coin_spawn > coin_spawn_distance:
+        spawn_coins()
+        last_coin_spawn = distance
+
+    # --- COIN SYSTEM: Update and Draw ---
+    update_coins()
+    draw_coins()
+    draw_coin_counter()
 
     if not rocket_active and not pause:
         rocket_counter += 1
@@ -260,10 +373,16 @@ while run:
         y_velocity = 0
         restart_cmd = 0
         new_laser = True
+        coins.clear()
+        coin_count = 0
+        last_coin_spawn = 0
+
 
     if distance > high_score:
         high_score = int(distance)
 
+    if pause:
+        restart, quits = draw_pause()
 
     pygame.display.flip()
 pygame.quit()
