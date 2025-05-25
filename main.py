@@ -4,7 +4,7 @@ from settings import *
 from player import load_player_assets, draw_player
 from coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
 from laser import generate_laser
-from rocket import draw_rocket
+from rocket import draw_rocket, load_rocket_assets
 from ui import draw_screen, draw_pause, draw_start_screen, draw_gameover_screen
 from storage import load_player_info, save_player_info
 
@@ -27,6 +27,8 @@ laser = []
 distance = 0
 restart_cmd = False
 new_bg = 0
+
+load_rocket_assets()
 
 rocket_counter = 0
 rocket_active = False
