@@ -1,12 +1,12 @@
 import pygame
 import random
-from settings import *
-from player import load_player_assets, draw_player
-from coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
-from laser import generate_laser
-from rocket import draw_rocket, load_rocket_assets
-from ui import draw_screen, draw_pause, draw_start_screen, draw_gameover_screen
-from storage import load_player_info, save_player_info
+from config.settings import *
+from entities.player import load_player_assets, draw_player
+from entities.coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
+from entities.laser import generate_laser
+from entities.rocket import draw_rocket, load_rocket_assets
+from systems.ui import draw_screen, draw_pause, draw_start_screen, draw_gameover_screen
+from config.storage import load_player_info, save_player_info
 
 pygame.init()
 screen = pygame.display.set_mode([WIDTH, HEIGHT])

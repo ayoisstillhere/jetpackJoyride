@@ -1,5 +1,5 @@
 import random
-from settings import WIDTH, HEIGHT
+from config.settings import WIDTH, HEIGHT
 
 def generate_laser():
     laser_type = random.randint(0, 1)

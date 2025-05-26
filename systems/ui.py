@@ -1,5 +1,5 @@
 import pygame
-from settings import WIDTH, HEIGHT, BG_COLOR
+from config.settings import WIDTH, HEIGHT, BG_COLOR
 
 def draw_screen(screen, surface, font, bg_color, line_list, lase, pause, game_speed, distance, high_score):
     screen.fill('black')

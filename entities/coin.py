@@ -1,7 +1,7 @@
 import pygame
 import random
 import math
-from settings import WIDTH, HEIGHT
+from config.settings import WIDTH, HEIGHT
 
 class Coin:
     def __init__(self, x, y, value=1):
@@ -91,7 +91,7 @@ def draw_coins(coins, screen):
         coin.draw(screen)
 
 def draw_coin_counter(screen, font, coin_count):
-    from settings import WIDTH
+    from config.settings import WIDTH
     coin_icon_x = WIDTH - 180
     coin_icon_y = 10
     pygame.draw.circle(screen, (255, 215, 0), (coin_icon_x, coin_icon_y+20), 15)
