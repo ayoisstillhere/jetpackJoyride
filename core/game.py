@@ -172,18 +172,19 @@ class Game:
         
         # Buttons
         button_y = HEIGHT*2//3
+        button_font = pygame.font.Font(None, 24)
         
         # Restart button
         self.restart_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 150, button_y, 140, 50], 0, 10)
         pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 150, button_y, 140, 50], 3, 10)
-        restart_text = self.font.render("RESTART", True, 'white')
+        restart_text = button_font.render("RESTART", True, 'white')
         restart_rect = restart_text.get_rect(center=self.restart_button.center)
         self.screen.blit(restart_text, restart_rect)
         
         # Menu button
         self.quit_button = pygame.draw.rect(self.screen, 'red', [WIDTH//2 + 10, button_y, 140, 50], 0, 10)
         pygame.draw.rect(self.screen, 'white', [WIDTH//2 + 10, button_y, 140, 50], 3, 10)
-        menu_text = self.font.render("MENU", True, 'white')
+        menu_text = button_font.render("MENU", True, 'white')
         menu_rect = menu_text.get_rect(center=self.quit_button.center)
         self.screen.blit(menu_text, menu_rect)
         

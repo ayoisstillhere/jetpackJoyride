@@ -4,6 +4,11 @@ from config.settings import WIDTH, HEIGHT
 class Rocket:
     def __init__(self):
         self.reset()
+        self.rocket_img = pygame.transform.flip(
+        pygame.transform.scale(
+            pygame.image.load("assets/rocket.png").convert_alpha(), (100, 30)
+        ), True, False
+    )
 
     def reset(self):
         self.x = WIDTH
@@ -47,8 +52,7 @@ class Rocket:
             pygame.draw.rect(screen, 'dark red', [self.x - 60, self.y - 25, 50, 50], 0, 5)
             screen.blit(font.render('!', True, 'black'), (self.x - 40, self.y - 20))
         else:
-            pygame.draw.rect(screen, 'red', [self.x, self.y - 10, 50, 20], 0, 5)
-            pygame.draw.ellipse(screen, 'orange', [self.x + 50, self.y - 10, 50, 20], 7)
+            screen.blit(self.rocket_img, (self.x, self.y - 10))
 
     def get_hitbox(self):
         """
