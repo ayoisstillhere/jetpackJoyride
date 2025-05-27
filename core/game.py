@@ -1,0 +1,301 @@
+import pygame
+import random
+
+from config.settings import WIDTH, HEIGHT, FPS, BG_COLOR, FONT_PATH
+from core.state import GameState
+from core.events import handle_events
+from systems.ui import draw_screen
+from systems.physics import apply_gravity, update_vertical_position, check_platform_collisions
+from entities.player import Player
+from entities.rocket import Rocket
+from entities.laser import Laser
+from entities.coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
+
+class GameStates:
+    START = "start"
+    PLAYING = "playing"
+    PAUSED = "paused"
+    GAME_OVER = "game_over"
+
+class Game:
+    def __init__(self):
+        pygame.init()
+
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        pygame.display.set_caption("AI Jetpack Runner")
+
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(FONT_PATH, 32)
+        self.title_font = pygame.font.Font(FONT_PATH, 64)
+
+        # Core state
+        self.state = GameState()
+        self.game_state = GameStates.START
+
+        # Game elements
+        self.player = Player()
+        self.rocket = Rocket()
+        self.laser = Laser()
+        self.lines = [0, WIDTH/4, WIDTH/2, 3*WIDTH/4]
+        self.bg_color = BG_COLOR
+
+        # Coin system
+        self.coins = []
+        self.last_coin_spawn = 0
+        self.coin_spawn_distance = 400
+
+        # UI buttons
+        self.start_button = None
+        self.restart_button = None
+        self.quit_button = None
+
+        self.running = True
+
+    def run(self):
+        while self.running:
+            self.clock.tick(FPS)
+
+            # === Events ===
+            if self.game_state == GameStates.START:
+                self._handle_start_events()
+            elif self.game_state == GameStates.PLAYING:
+                quit_requested = handle_events(self.state, self.player, None, None)
+                if quit_requested:
+                    self.running = False
+                    break
+                if self.state.paused:
+                    self.game_state = GameStates.PAUSED
+            elif self.game_state == GameStates.PAUSED:
+                quit_requested = handle_events(self.state, self.player, self.restart_button, self.quit_button)
+                if quit_requested:
+                    self.running = False
+                    break
+                if self.state.restart_requested:
+                    self._start_new_game()
+                elif not self.state.paused:
+                    self.game_state = GameStates.PLAYING
+            elif self.game_state == GameStates.GAME_OVER:
+                self._handle_game_over_events()
+
+            # === Draw ===
+            if self.game_state == GameStates.START:
+                self._draw_start_screen()
+            elif self.game_state == GameStates.GAME_OVER:
+                self._draw_game_over_screen()
+            else:
+                self._draw_game_screen()
+
+            pygame.display.flip()
+
+        pygame.quit()
+
+    def _handle_start_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.start_button and self.start_button.collidepoint(event.pos):
+                    self._start_new_game()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self._start_new_game()
+
+    def _handle_game_over_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.restart_button and self.restart_button.collidepoint(event.pos):
+                    self._start_new_game()
+                elif self.quit_button and self.quit_button.collidepoint(event.pos):
+                    self.game_state = GameStates.START
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self._start_new_game()
+                elif event.key == pygame.K_ESCAPE:
+                    self.game_state = GameStates.START
+
+    def _draw_start_screen(self):
+        self.screen.fill(self.bg_color)
+        
+        # Title
+        title_text = self.title_font.render("AI JETPACK RUNNER", True, 'white')
+        title_rect = title_text.get_rect(center=(WIDTH//2, HEIGHT//4))
+        self.screen.blit(title_text, title_rect)
+        
+        # Instructions
+        instructions = [
+            "Use SPACE to boost your jetpack",
+            "Collect coins and avoid obstacles",
+            "Press SPACE or click START to begin"
+        ]
+        
+        for i, instruction in enumerate(instructions):
+            text = self.font.render(instruction, True, 'white')
+            text_rect = text.get_rect(center=(WIDTH//2, HEIGHT//2 + i * 40))
+            self.screen.blit(text, text_rect)
+        
+        # Start button
+        self.start_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 100, HEIGHT*3//4 - 25, 200, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 100, HEIGHT*3//4 - 25, 200, 50], 3, 10)
+        start_text = self.font.render("START", True, 'white')
+        start_rect = start_text.get_rect(center=self.start_button.center)
+        self.screen.blit(start_text, start_rect)
+        
+        # High score display
+        if self.state.high_score > 0:
+            high_score_text = self.font.render(f"High Score: {int(self.state.high_score)}", True, 'yellow')
+            high_score_rect = high_score_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
+            self.screen.blit(high_score_text, high_score_rect)
+
+    def _draw_game_over_screen(self):
+        self.screen.fill((50, 50, 50))  # Dark background
+        
+        # Game Over title
+        game_over_text = self.title_font.render("GAME OVER", True, 'red')
+        game_over_rect = game_over_text.get_rect(center=(WIDTH//2, HEIGHT//4))
+        self.screen.blit(game_over_text, game_over_rect)
+        
+        # Score information
+        score_info = [
+            f"Distance: {int(self.state.distance)}",
+            f"Coins Collected: {self.state.coin_count}",
+            f"High Score: {int(self.state.high_score)}"
+        ]
+        
+        for i, info in enumerate(score_info):
+            color = 'yellow' if 'High Score' in info else 'white'
+            text = self.font.render(info, True, color)
+            text_rect = text.get_rect(center=(WIDTH//2, HEIGHT//2 - 20 + i * 40))
+            self.screen.blit(text, text_rect)
+        
+        # Buttons
+        button_y = HEIGHT*2//3
+        button_font = pygame.font.Font(None, 24)
+        
+        # Restart button
+        self.restart_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 150, button_y, 140, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 150, button_y, 140, 50], 3, 10)
+        restart_text = button_font.render("RESTART", True, 'white')
+        restart_rect = restart_text.get_rect(center=self.restart_button.center)
+        self.screen.blit(restart_text, restart_rect)
+        
+        # Menu button
+        self.quit_button = pygame.draw.rect(self.screen, 'red', [WIDTH//2 + 10, button_y, 140, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', [WIDTH//2 + 10, button_y, 140, 50], 3, 10)
+        menu_text = button_font.render("MENU", True, 'white')
+        menu_rect = menu_text.get_rect(center=self.quit_button.center)
+        self.screen.blit(menu_text, menu_rect)
+        
+        # Instructions
+        instruction_text = self.font.render("Press SPACE to restart or ESC for menu", True, 'gray')
+        instruction_rect = instruction_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
+        self.screen.blit(instruction_text, instruction_rect)
+
+    def _draw_game_screen(self):
+        # === Draw Game ===
+        self.lines, self.top_plat, self.bot_plat, self.laser.points, self.laser_rect = draw_screen(
+            screen=self.screen,
+            surface=self.surface,
+            font=self.font,
+            bg_color=self.bg_color,
+            lines=self.lines,
+            laser=self.laser.points,
+            distance=self.state.distance,
+            high_score=self.state.high_score,
+            pause=self.state.paused,
+            game_speed=self._get_speed()
+        )
+
+        # === Update ===
+        if not self.state.paused:
+            self._update_game_logic()
+
+        self._draw_entities()
+
+        if self.state.paused:
+            self.restart_button, self.quit_button = self._draw_pause_menu()
+
+    def _start_new_game(self):
+        self._restart_game()
+        self.game_state = GameStates.PLAYING
+
+    def _update_game_logic(self):
+        # Animation + Distance
+        self.player.update_animation()
+        self.state.distance += self._get_speed()
+
+        # Coin spawning
+        if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
+            spawn_coins(self.coins)
+            self.last_coin_spawn = self.state.distance
+
+        update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self._get_speed())
+
+        # Rocket
+        if not self.rocket.active:
+            self.rocket.counter += 1
+            if self.rocket.counter > 180:
+                self.rocket.activate()
+
+        self.rocket.update(self.player.y, self.state.paused, self._get_speed())
+
+        # Laser
+        self.laser.update(self._get_speed())
+        if self.laser.is_offscreen():
+            self.laser = Laser()
+
+        # Physics
+        apply_gravity(self.player, self.player.booster)
+        self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
+        update_vertical_position(self.player, self.top_hit, self.bot_hit)
+
+        # Collision
+        rocket_rect = self.rocket.get_hitbox()
+        if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
+            self._trigger_game_over()
+
+        if self.laser_rect.colliderect(self.player.get_hitbox()):
+            self._trigger_game_over()
+
+        # Background color variation
+        if self.state.distance % 500 == 0:
+            self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+
+    def _trigger_game_over(self):
+        self.state.save_player_data()
+        self.game_state = GameStates.GAME_OVER
+
+    def _draw_entities(self):
+        draw_coins(self.coins, self.screen)
+        draw_coin_counter(self.screen, self.font, self.state.coin_count)
+        self.player.draw(self.screen)
+        self.rocket.draw(self.screen, self.font)
+
+    def _draw_pause_menu(self):
+        pygame.draw.rect(self.surface, (128, 128, 128, 150), [0, 0, WIDTH, HEIGHT])
+        pygame.draw.rect(self.surface, 'dark gray', [200, 150, 600, 50], 0, 10)
+        self.surface.blit(self.font.render('Game Paused. Press ESC to Resume', True, 'black'), (220, 160))
+        restart_btn = pygame.draw.rect(self.surface, 'white', [200, 220, 280, 50], 0, 10)
+        self.surface.blit(self.font.render('Restart', True, 'black'), (220, 230))
+        quit_btn = pygame.draw.rect(self.surface, 'white', [520, 220, 280, 50], 0, 10)
+        self.surface.blit(self.font.render('Quit', True, 'black'), (540, 230))
+        pygame.draw.rect(self.surface, 'dark gray', [200, 300, 600, 50], 0, 10)
+        self.surface.blit(self.font.render(f'Lifetime Distance: {int(self.state.lifetime_distance)}', True, 'black'), (220, 310))
+        self.screen.blit(self.surface, (0, 0))
+        return restart_btn, quit_btn
+
+    def _restart_game(self):
+        self.state.reset_run()
+        self.player.reset()
+        self.rocket.reset()
+        self.laser = Laser()
+        self.coins.clear()
+        self.last_coin_spawn = 0
+        self.bg_color = BG_COLOR
+
+    def _get_speed(self):
+        if self.state.distance < 50000:
+            return 1 + (self.state.distance // 500) / 10
+        return 11
