@@ -30,17 +30,28 @@ class Player:
     def get_hitbox(self):
         return pygame.Rect(self.x, self.y + 10, self.width, self.height)
 
-    def draw(self, screen):
-        if self.y < PLAYER_INIT_Y:  # in the air
-            if self.velocity_y < 0:  # going up
-                if self.booster:
-                    screen.blit(self.flame_img, (self.x + 15, self.y + self.height))
-                screen.blit(self.jump_up_img, (self.x, self.y))
-            else:  # falling
-                screen.blit(self.jump_down_img, (self.x, self.y))
-        else:  # running
-            frame_index = (self.counter // 6) % len(self.run_frames)
-            screen.blit(self.run_frames[frame_index], (self.x, self.y))
+    def draw(self, screen, paused=False):
+        if paused:  # When paused, show static image
+            if self.y < PLAYER_INIT_Y:  # in the air
+                if self.velocity_y < 0:  # going up
+                    if self.booster:
+                        screen.blit(self.flame_img, (self.x + 15, self.y + self.height))
+                    screen.blit(self.jump_up_img, (self.x, self.y))
+                else:  # falling
+                    screen.blit(self.jump_down_img, (self.x, self.y))
+            else:  # on ground
+                screen.blit(self.run_frames[0], (self.x, self.y))  # Use first frame
+        else:  # Normal animation
+            if self.y < PLAYER_INIT_Y:  # in the air
+                if self.velocity_y < 0:  # going up
+                    if self.booster:
+                        screen.blit(self.flame_img, (self.x + 15, self.y + self.height))
+                    screen.blit(self.jump_up_img, (self.x, self.y))
+                else:  # falling
+                    screen.blit(self.jump_down_img, (self.x, self.y))
+            else:  # running
+                frame_index = (self.counter // 6) % len(self.run_frames)
+                screen.blit(self.run_frames[frame_index], (self.x, self.y))
 
         return self.get_hitbox()
 

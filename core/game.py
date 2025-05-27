@@ -270,7 +270,7 @@ class Game:
     def _draw_entities(self):
         draw_coins(self.coins, self.screen)
         draw_coin_counter(self.screen, self.font, self.state.coin_count)
-        self.player.draw(self.screen)
+        self.player.draw(self.screen, self.state.paused)
         self.rocket.draw(self.screen, self.font)
 
     def _draw_pause_menu(self):
