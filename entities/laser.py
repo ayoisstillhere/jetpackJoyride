@@ -37,3 +37,7 @@ class Laser:
             abs(self.points[1][0] - self.points[0][0]),
             10  # height
         )
+
+    def reset(self):
+        """重置激光的位置和状态"""
+        self.points = self._generate()

@@ -49,3 +49,10 @@ class GameState:
         self.coin_count = 0
         self.restart_requested = False
         self.paused = False
+
+    def reset(self):
+        """
+        Reset runtime stats for a new game round.
+        Alias for reset_run for compatibility.
+        """
+        self.reset_run()
