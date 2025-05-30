@@ -23,6 +23,10 @@ def handle_events(state, player, restart_button=None, quit_button=None, events=N
             if event.key == pygame.K_SPACE and not state.paused and not getattr(player, 'controlled_by_ai', False):
                 player.booster = True
 
+            if event.key == pygame.K_t:
+                player.controlled_by_ai = not getattr(player, 'controlled_by_ai', False)
+                print(f"[HUD] AI mode {'ON' if player.controlled_by_ai else 'OFF'}")
+
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE and not getattr(player, 'controlled_by_ai', False):
                 player.booster = False

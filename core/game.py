@@ -53,7 +53,7 @@ class Game:
 
         # AI
         self.agent = RuleBasedAgent()
-        self.player.controlled_by_ai = True
+        self.player.controlled_by_ai = False
 
         self.running = True
 
@@ -67,11 +67,6 @@ class Game:
                 self._handle_start_events(events)
 
             elif self.game_state == GameStates.PLAYING:
-                for event in events:
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_t:
-                        self.player.controlled_by_ai = not self.player.controlled_by_ai
-                        print(f"[TOGGLE] AI Control: {self.player.controlled_by_ai}")
-
                 quit_requested = handle_events(self.state, self.player, None, None, events)
                 if quit_requested:
                     self.running = False

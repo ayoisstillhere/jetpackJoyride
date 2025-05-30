@@ -2,11 +2,12 @@ def apply_gravity(player):
     """
     Apply gravity or upward thrust based on player state.
     """
-    if player.booster_duration > 0:
-        player.booster = True
-        player.booster_duration -= 1
-    else:
-        player.booster = False
+    if player.controlled_by_ai:
+        if player.booster_duration > 0:
+            player.booster = True
+            player.booster_duration -= 1
+        else:
+            player.booster = False
 
     if player.booster:
         player.velocity_y -= player.gravity
