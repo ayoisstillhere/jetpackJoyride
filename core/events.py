@@ -1,13 +1,17 @@
 import pygame
 
-def handle_events(state, player, restart_button=None, quit_button=None):
+
+def handle_events(state, player, restart_button=None, quit_button=None, events=None):
     """
     Process Pygame events and update game state accordingly.
 
     Returns:
         should_quit (bool): True if the game window was closed or quit was requested.
     """
-    for event in pygame.event.get():
+    if events is None:
+        events = pygame.event.get()
+
+    for event in events:
         if event.type == pygame.QUIT:
             state.save_player_data()
             return True
@@ -16,11 +20,11 @@ def handle_events(state, player, restart_button=None, quit_button=None):
             if event.key == pygame.K_ESCAPE:
                 state.paused = not state.paused
 
-            if event.key == pygame.K_SPACE and not state.paused:
+            if event.key == pygame.K_SPACE and not state.paused and not getattr(player, 'controlled_by_ai', False):
                 player.booster = True
 
         if event.type == pygame.KEYUP:
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_SPACE and not getattr(player, 'controlled_by_ai', False):
                 player.booster = False
 
         if event.type == pygame.MOUSEBUTTONDOWN and state.paused:

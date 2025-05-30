@@ -8,9 +8,12 @@ class Player:
         self.width = 55
         self.height = 60
         self.velocity_y = 0
-        self.gravity = 0.4
+        self.gravity = 0.8
         self.counter = 0  # frame index control
         self.booster = False
+        self.controlled_by_ai = False
+        self.booster_duration = 0  # holding the space bar to jump
+        self.max_booster_duration = 5
 
         # Carrega assets
         self.run_frames = [pygame.transform.scale(
@@ -64,3 +67,4 @@ class Player:
         self.velocity_y = 0
         self.counter = 0
         self.booster = False
+        self.booster_duration = 0
