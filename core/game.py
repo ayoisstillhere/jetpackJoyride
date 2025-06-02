@@ -11,12 +11,15 @@ from entities.player import Player
 from entities.rocket import Rocket
 from entities.laser import Laser
 from entities.coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
+from background_system import BackgroundSystem
+from difficulty_system import DifficultySystem
 
 class GameStates:
     START = "start"
     PLAYING = "playing"
     PAUSED = "paused"
     GAME_OVER = "game_over"
+    CHARACTER_SELECT = "character_select"
 
 class Game:
     def __init__(self):
@@ -29,10 +32,15 @@ class Game:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(FONT_PATH, 32)
         self.title_font = pygame.font.Font(FONT_PATH, 64)
+        self.small_font = pygame.font.Font(FONT_PATH, 24)
 
         # Core state
         self.state = GameState()
         self.game_state = GameStates.START
+
+        # Game systems
+        self.background_system = BackgroundSystem(WIDTH, HEIGHT)
+        self.difficulty_system = DifficultySystem()
 
         # Game elements
         self.player = Player()
@@ -40,6 +48,10 @@ class Game:
         self.laser = Laser()
         self.lines = [0, WIDTH/4, WIDTH/2, 3*WIDTH/4]
         self.bg_color = BG_COLOR
+
+        # Character selection
+        self.character_buttons = {}
+        self.selected_character = "boy"
 
         # Coin system
         self.coins = []
@@ -50,6 +62,8 @@ class Game:
         self.start_button = None
         self.restart_button = None
         self.quit_button = None
+        self.character_button = None
+        self.back_button = None
 
         # AI
         self.agent = RuleBasedAgent()
@@ -66,6 +80,8 @@ class Game:
             if self.game_state == GameStates.START:
                 self._handle_start_events(events)
 
+            elif self.game_state == GameStates.CHARACTER_SELECT:
+                self._handle_character_select_events()
             elif self.game_state == GameStates.PLAYING:
                 quit_requested = handle_events(self.state, self.player, None, None, events)
                 if quit_requested:
@@ -91,6 +107,8 @@ class Game:
             # === Draw ===
             if self.game_state == GameStates.START:
                 self._draw_start_screen()
+            elif self.game_state == GameStates.CHARACTER_SELECT:
+                self._draw_character_select_screen()
             elif self.game_state == GameStates.GAME_OVER:
                 self._draw_game_over_screen()
             else:
@@ -107,8 +125,32 @@ class Game:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if self.start_button and self.start_button.collidepoint(event.pos):
                     self._start_new_game()
+                elif self.character_button and self.character_button.collidepoint(event.pos):
+                    self.game_state = GameStates.CHARACTER_SELECT
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
+                    self._start_new_game()
+                elif event.key == pygame.K_c:
+                    self.game_state = GameStates.CHARACTER_SELECT
+
+    def _handle_character_select_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.start_button and self.start_button.collidepoint(event.pos):
+                    self._start_new_game()
+                elif self.back_button and self.back_button.collidepoint(event.pos):
+                    self.game_state = GameStates.START
+                # Check character selection
+                for char_type, button in self.character_buttons.items():
+                    if button.collidepoint(event.pos):
+                        self.selected_character = char_type
+                        self.player.change_character(char_type)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.game_state = GameStates.START
+                elif event.key == pygame.K_SPACE:
                     self._start_new_game()
 
     def _handle_game_over_events(self, events):
@@ -138,26 +180,110 @@ class Game:
         instructions = [
             "Use SPACE to boost your jetpack",
             "Collect coins and avoid obstacles",
-            "Press SPACE or click START to begin"
+            "Press SPACE or click START to begin",
+            "Press C or click CHARACTER to choose character"
         ]
 
         for i, instruction in enumerate(instructions):
             text = self.font.render(instruction, True, 'white')
-            text_rect = text.get_rect(center=(WIDTH//2, HEIGHT//2 + i * 40))
+            text_rect = text.get_rect(center=(WIDTH//2, HEIGHT//2 - 40 + i * 40))
             self.screen.blit(text, text_rect)
 
         # Start button
-        self.start_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 100, HEIGHT*3//4 - 25, 200, 50], 0, 10)
-        pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 100, HEIGHT*3//4 - 25, 200, 50], 3, 10)
+        self.start_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 150, HEIGHT*3//4 - 25, 140, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 150, HEIGHT*3//4 - 25, 140, 50], 3, 10)
         start_text = self.font.render("START", True, 'white')
         start_rect = start_text.get_rect(center=self.start_button.center)
         self.screen.blit(start_text, start_rect)
+
+        # Character button
+        self.character_button = pygame.draw.rect(self.screen, 'blue', [WIDTH//2 + 10, HEIGHT*3//4 - 25, 140, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', [WIDTH//2 + 10, HEIGHT*3//4 - 25, 140, 50], 3, 10)
+        char_font = pygame.font.Font(FONT_PATH, 20)  # Smaller font size
+        char_text = char_font.render("CHARACTER", True, 'white')
+        char_rect = char_text.get_rect(center=self.character_button.center)
+        self.screen.blit(char_text, char_rect)
 
         # High score display
         if self.state.high_score > 0:
             high_score_text = self.font.render(f"High Score: {int(self.state.high_score)}", True, 'yellow')
             high_score_rect = high_score_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
             self.screen.blit(high_score_text, high_score_rect)
+
+    def _draw_character_select_screen(self):
+        self.screen.fill(self.bg_color)
+        
+        # Title
+        title_text = self.title_font.render("CHOOSE CHARACTER", True, 'white')
+        title_rect = title_text.get_rect(center=(WIDTH//2, HEIGHT//4))
+        self.screen.blit(title_text, title_rect)
+        
+        # Character selection buttons
+        characters = ["boy", "girl", "cat"]
+        button_width = 120
+        button_height = 160
+        spacing = 20
+        total_width = (button_width * len(characters)) + (spacing * (len(characters) - 1))
+        start_x = (WIDTH - total_width) // 2
+        
+        for i, char_type in enumerate(characters):
+            x = start_x + (button_width + spacing) * i
+            y = HEIGHT//2 - button_height//2
+            
+            # Draw character button
+            button_color = 'green' if char_type == self.selected_character else 'blue'
+            self.character_buttons[char_type] = pygame.draw.rect(
+                self.screen, button_color, 
+                [x, y, button_width, button_height], 0, 10
+            )
+            pygame.draw.rect(
+                self.screen, 'white', 
+                [x, y, button_width, button_height], 3, 10
+            )
+            
+            # Draw character name
+            char_text = self.small_font.render(char_type.upper(), True, 'white')
+            char_rect = char_text.get_rect(center=(x + button_width//2, y + button_height - 20))
+            self.screen.blit(char_text, char_rect)
+            
+            # Draw character preview
+            try:
+                preview = pygame.transform.scale(
+                    pygame.image.load(f"assets/{char_type}/run/1.PNG").convert_alpha(),
+                    (button_width - 20, button_height - 40)
+                )
+                preview_rect = preview.get_rect(center=(x + button_width//2, y + button_height//2 - 10))
+                self.screen.blit(preview, preview_rect)
+            except:
+                pass  # Skip preview if image not found
+        
+        # Buttons
+        button_y = HEIGHT*3//4
+        button_spacing = 20
+        button_width = 120
+        
+        # Start button
+        self.start_button = pygame.draw.rect(self.screen, 'green', 
+            [WIDTH//2 - button_width - button_spacing//2, button_y, button_width, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', 
+            [WIDTH//2 - button_width - button_spacing//2, button_y, button_width, 50], 3, 10)
+        start_text = self.font.render("START", True, 'white')
+        start_rect = start_text.get_rect(center=self.start_button.center)
+        self.screen.blit(start_text, start_rect)
+        
+        # Back button
+        self.back_button = pygame.draw.rect(self.screen, 'red', 
+            [WIDTH//2 + button_spacing//2, button_y, button_width, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', 
+            [WIDTH//2 + button_spacing//2, button_y, button_width, 50], 3, 10)
+        back_text = self.font.render("BACK", True, 'white')
+        back_rect = back_text.get_rect(center=self.back_button.center)
+        self.screen.blit(back_text, back_rect)
+        
+        # Instructions
+        instruction_text = self.font.render("Click a character to select, SPACE to start, ESC to go back", True, 'gray')
+        instruction_rect = instruction_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
+        self.screen.blit(instruction_text, instruction_rect)
 
     def _draw_game_over_screen(self):
         self.screen.fill((50, 50, 50))  # Dark background
@@ -204,6 +330,9 @@ class Game:
         self.screen.blit(instruction_text, instruction_rect)
 
     def _draw_game_screen(self):
+        # === Draw Background ===
+        self.background_system.draw_background(self.screen, self.state.paused, self.difficulty_system.game_speed)
+
         # === Draw Game ===
         self.lines, self.top_plat, self.bot_plat, self.laser.points, self.laser_rect = draw_screen(
             screen=self.screen,
@@ -215,7 +344,7 @@ class Game:
             distance=self.state.distance,
             high_score=self.state.high_score,
             pause=self.state.paused,
-            game_speed=self._get_speed()
+            game_speed=self.difficulty_system.game_speed
         )
 
         # === Update ===
@@ -244,13 +373,36 @@ class Game:
             self.restart_button, self.quit_button = self._draw_pause_menu()
 
     def _start_new_game(self):
-        self._restart_game()
         self.game_state = GameStates.PLAYING
+        self.state.reset()
+        self.player.reset()
+        self.rocket.reset()
+        self.laser.reset()
+        self.coins = []
+        
+        # Reset systems
+        self.difficulty_system.reset()
+        self.background_system.reset()  # 先完全重置背景系统
+        self.background_system.update_by_distance(0)  # 然后更新到初始位置
 
     def _update_game_logic(self):
-        # Animation + Distance
-        self.player.update_animation()
-        self.state.distance += self._get_speed()
+        if not self.state.paused:
+            # Update difficulty
+            if self.difficulty_system.update(self.state.distance):
+                # 如果难度更新了，同时更新背景
+                self.background_system.update_by_distance(self.state.distance)
+
+            # Update game speed based on difficulty
+            game_speed = self.difficulty_system.game_speed
+
+            # Update background
+            self.background_system.update(pause=False, distance=self.state.distance, game_speed=game_speed)
+
+            # Update other game elements with the new speed
+            self.state.distance += game_speed
+
+            # Animation + Distance
+            self.player.update_animation()
 
         # === AI Decision ===
         if self.player.controlled_by_ai:
@@ -267,51 +419,53 @@ class Game:
             if action == "jump":
                 self.player.booster_duration = self.player.max_booster_duration
 
-        # Coin spawning
-        if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
-            spawn_coins(self.coins)
-            self.last_coin_spawn = self.state.distance
+            # Coin spawning
+            if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
+                spawn_coins(self.coins)
+                self.last_coin_spawn = self.state.distance
 
-        update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self._get_speed())
+            update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self.difficulty_system.game_speed)
 
-        # Rocket
-        if not self.rocket.active:
-            self.rocket.counter += 1
-            if self.rocket.counter > 180:
-                self.rocket.activate()
+            # Rocket
+            if not self.rocket.active:
+                self.rocket.counter += 1
+                if self.rocket.counter > 180:
+                    self.rocket.activate()
 
-        self.rocket.update(self.player.y, self.state.paused, self._get_speed())
+            self.rocket.update(self.player.y, self.state.paused, self.difficulty_system.game_speed)
 
-        # Laser
-        self.laser.update(self._get_speed())
-        if self.laser.is_offscreen():
-            self.laser = Laser()
+            # Laser
+            self.laser.update(self.difficulty_system.game_speed)
+            if self.laser.is_offscreen():
+                self.laser = Laser()
 
-        # Physics
-        apply_gravity(self.player)
-        self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
-        update_vertical_position(self.player, self.top_hit, self.bot_hit)
+            # Physics
+            apply_gravity(self.player)
+            self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
+            update_vertical_position(self.player, self.top_hit, self.bot_hit)
 
-        # Collision
-        rocket_rect = self.rocket.get_hitbox()
-        if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
-            self._trigger_game_over()
+            # Collision
+            rocket_rect = self.rocket.get_hitbox()
+            if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
+                self._trigger_game_over()
 
-        if self.laser_rect.colliderect(self.player.get_hitbox()):
-            self._trigger_game_over()
+            if self.laser_rect.colliderect(self.player.get_hitbox()):
+                self._trigger_game_over()
 
-        # Background color variation
-        if self.state.distance % 500 == 0:
-            self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+            # Background color variation
+            if self.state.distance % 500 == 0:
+                self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 
     def _trigger_game_over(self):
         self.state.save_player_data()
         self.game_state = GameStates.GAME_OVER
+        # 重置背景到初始状态
+        self.background_system.reset()
 
     def _draw_entities(self):
         draw_coins(self.coins, self.screen)
         draw_coin_counter(self.screen, self.font, self.state.coin_count)
-        self.player.draw(self.screen)
+        self.player.draw(self.screen, self.state.paused)
         self.rocket.draw(self.screen, self.font)
 
     def _draw_pause_menu(self):
@@ -337,6 +491,5 @@ class Game:
         self.bg_color = BG_COLOR
 
     def _get_speed(self):
-        if self.state.distance < 50000:
-            return 1 + (self.state.distance // 500) / 10
-        return 11
+        """获取当前游戏速度（保留此方法以兼容其他可能的调用）"""
+        return self.difficulty_system.game_speed

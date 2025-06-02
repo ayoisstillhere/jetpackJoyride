@@ -2,14 +2,15 @@ import pygame
 from config.settings import WIDTH, HEIGHT
 
 def draw_screen(screen, surface, font, bg_color, lines, laser, distance, high_score, pause, game_speed):
-    screen.fill('black')
-
+    # no fill black background, because background system has already drawn the background
     pygame.draw.rect(surface, (*bg_color, 50), [0, 0, WIDTH, HEIGHT])
     screen.blit(surface, (0, 0))
 
+    # top and bottom platform
     top = pygame.draw.rect(screen, 'gray', [0, 0, WIDTH, 50])
     bot = pygame.draw.rect(screen, 'gray', [0, HEIGHT - 50, WIDTH, 50])
 
+    # platform
     for i in range(len(lines)):
         pygame.draw.line(screen, 'black', (lines[i], 0), (lines[i], 50), 3)
         pygame.draw.line(screen, 'black', (lines[i], HEIGHT - 50), (lines[i], HEIGHT), 3)
@@ -22,6 +23,7 @@ def draw_screen(screen, surface, font, bg_color, lines, laser, distance, high_sc
         if lines[i] < 0:
             lines[i] = WIDTH
 
+    # laser
     start = laser[0]
     end = laser[1]
     pygame.draw.line(screen, 'yellow', start, end, 10)
@@ -35,6 +37,7 @@ def draw_screen(screen, surface, font, bg_color, lines, laser, distance, high_sc
         10  # laser thickness
     )
 
+    # pint score
     screen.blit(font.render(f'Distance: {int(distance)} m', True, 'white'), (10, 10))
     screen.blit(font.render(f'High Score: {int(high_score)} m', True, 'white'), (10, 70))
 
