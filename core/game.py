@@ -10,6 +10,8 @@ from entities.player import Player
 from entities.rocket import Rocket
 from entities.laser import Laser
 from entities.coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
+from background_system import BackgroundSystem
+from difficulty_system import DifficultySystem
 
 class GameStates:
     START = "start"
@@ -34,6 +36,10 @@ class Game:
         # Core state
         self.state = GameState()
         self.game_state = GameStates.START
+
+        # Game systems
+        self.background_system = BackgroundSystem(WIDTH, HEIGHT)
+        self.difficulty_system = DifficultySystem()
 
         # Game elements
         self.player = Player()
@@ -314,6 +320,9 @@ class Game:
         self.screen.blit(instruction_text, instruction_rect)
 
     def _draw_game_screen(self):
+        # === Draw Background ===
+        self.background_system.draw_background(self.screen, self.state.paused, self.difficulty_system.game_speed)
+
         # === Draw Game ===
         self.lines, self.top_plat, self.bot_plat, self.laser.points, self.laser_rect = draw_screen(
             screen=self.screen,
@@ -325,7 +334,7 @@ class Game:
             distance=self.state.distance,
             high_score=self.state.high_score,
             pause=self.state.paused,
-            game_speed=self._get_speed()
+            game_speed=self.difficulty_system.game_speed
         )
 
         # === Update ===
@@ -338,54 +347,79 @@ class Game:
             self.restart_button, self.quit_button = self._draw_pause_menu()
 
     def _start_new_game(self):
-        self._restart_game()
         self.game_state = GameStates.PLAYING
+        self.state.reset()
+        self.player.reset()
+        self.rocket.reset()
+        self.laser.reset()
+        self.coins = []
+        
+        # Reset systems
+        self.difficulty_system.reset()
+        self.background_system.reset()  # 先完全重置背景系统
+        self.background_system.update_by_distance(0)  # 然后更新到初始位置
 
     def _update_game_logic(self):
-        # Animation + Distance
-        self.player.update_animation()
-        self.state.distance += self._get_speed()
+        if not self.state.paused:
+            # Update difficulty
+            if self.difficulty_system.update(self.state.distance):
+                # 如果难度更新了，同时更新背景
+                self.background_system.update_by_distance(self.state.distance)
 
-        # Coin spawning
-        if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
-            spawn_coins(self.coins)
-            self.last_coin_spawn = self.state.distance
+            # Update game speed based on difficulty
+            game_speed = self.difficulty_system.game_speed
 
-        update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self._get_speed())
+            # Update background
+            self.background_system.update(pause=False, distance=self.state.distance, game_speed=game_speed)
 
-        # Rocket
-        if not self.rocket.active:
-            self.rocket.counter += 1
-            if self.rocket.counter > 180:
-                self.rocket.activate()
+            # Update other game elements with the new speed
+            self.state.distance += game_speed
 
-        self.rocket.update(self.player.y, self.state.paused, self._get_speed())
+            # Animation + Distance
+            self.player.update_animation()
 
-        # Laser
-        self.laser.update(self._get_speed())
-        if self.laser.is_offscreen():
-            self.laser = Laser()
+            # Coin spawning
+            if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
+                spawn_coins(self.coins)
+                self.last_coin_spawn = self.state.distance
 
-        # Physics
-        apply_gravity(self.player, self.player.booster)
-        self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
-        update_vertical_position(self.player, self.top_hit, self.bot_hit)
+            update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self.difficulty_system.game_speed)
 
-        # Collision
-        rocket_rect = self.rocket.get_hitbox()
-        if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
-            self._trigger_game_over()
+            # Rocket
+            if not self.rocket.active:
+                self.rocket.counter += 1
+                if self.rocket.counter > 180:
+                    self.rocket.activate()
 
-        if self.laser_rect.colliderect(self.player.get_hitbox()):
-            self._trigger_game_over()
+            self.rocket.update(self.player.y, self.state.paused, self.difficulty_system.game_speed)
 
-        # Background color variation
-        if self.state.distance % 500 == 0:
-            self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+            # Laser
+            self.laser.update(self.difficulty_system.game_speed)
+            if self.laser.is_offscreen():
+                self.laser = Laser()
+
+            # Physics
+            apply_gravity(self.player, self.player.booster)
+            self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
+            update_vertical_position(self.player, self.top_hit, self.bot_hit)
+
+            # Collision
+            rocket_rect = self.rocket.get_hitbox()
+            if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
+                self._trigger_game_over()
+
+            if self.laser_rect.colliderect(self.player.get_hitbox()):
+                self._trigger_game_over()
+
+            # Background color variation
+            if self.state.distance % 500 == 0:
+                self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 
     def _trigger_game_over(self):
         self.state.save_player_data()
         self.game_state = GameStates.GAME_OVER
+        # 重置背景到初始状态
+        self.background_system.reset()
 
     def _draw_entities(self):
         draw_coins(self.coins, self.screen)
@@ -416,6 +450,5 @@ class Game:
         self.bg_color = BG_COLOR
 
     def _get_speed(self):
-        if self.state.distance < 50000:
-            return 1 + (self.state.distance // 500) / 10
-        return 11
+        """获取当前游戏速度（保留此方法以兼容其他可能的调用）"""
+        return self.difficulty_system.game_speed
