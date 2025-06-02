@@ -18,6 +18,7 @@ class GameStates:
     PLAYING = "playing"
     PAUSED = "paused"
     GAME_OVER = "game_over"
+    CHARACTER_SELECT = "character_select"
 
 class Game:
     def __init__(self):
@@ -30,6 +31,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(FONT_PATH, 32)
         self.title_font = pygame.font.Font(FONT_PATH, 64)
+        self.small_font = pygame.font.Font(FONT_PATH, 24)
 
         # Core state
         self.state = GameState()
@@ -46,6 +48,10 @@ class Game:
         self.lines = [0, WIDTH/4, WIDTH/2, 3*WIDTH/4]
         self.bg_color = BG_COLOR
 
+        # Character selection
+        self.character_buttons = {}
+        self.selected_character = "boy"
+
         # Coin system
         self.coins = []
         self.last_coin_spawn = 0
@@ -55,6 +61,8 @@ class Game:
         self.start_button = None
         self.restart_button = None
         self.quit_button = None
+        self.character_button = None
+        self.back_button = None
 
         self.running = True
 
@@ -65,6 +73,8 @@ class Game:
             # === Events ===
             if self.game_state == GameStates.START:
                 self._handle_start_events()
+            elif self.game_state == GameStates.CHARACTER_SELECT:
+                self._handle_character_select_events()
             elif self.game_state == GameStates.PLAYING:
                 quit_requested = handle_events(self.state, self.player, None, None)
                 if quit_requested:
@@ -87,6 +97,8 @@ class Game:
             # === Draw ===
             if self.game_state == GameStates.START:
                 self._draw_start_screen()
+            elif self.game_state == GameStates.CHARACTER_SELECT:
+                self._draw_character_select_screen()
             elif self.game_state == GameStates.GAME_OVER:
                 self._draw_game_over_screen()
             else:
@@ -103,8 +115,32 @@ class Game:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if self.start_button and self.start_button.collidepoint(event.pos):
                     self._start_new_game()
+                elif self.character_button and self.character_button.collidepoint(event.pos):
+                    self.game_state = GameStates.CHARACTER_SELECT
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
+                    self._start_new_game()
+                elif event.key == pygame.K_c:
+                    self.game_state = GameStates.CHARACTER_SELECT
+
+    def _handle_character_select_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.start_button and self.start_button.collidepoint(event.pos):
+                    self._start_new_game()
+                elif self.back_button and self.back_button.collidepoint(event.pos):
+                    self.game_state = GameStates.START
+                # Check character selection
+                for char_type, button in self.character_buttons.items():
+                    if button.collidepoint(event.pos):
+                        self.selected_character = char_type
+                        self.player.change_character(char_type)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.game_state = GameStates.START
+                elif event.key == pygame.K_SPACE:
                     self._start_new_game()
 
     def _handle_game_over_events(self):
@@ -134,26 +170,110 @@ class Game:
         instructions = [
             "Use SPACE to boost your jetpack",
             "Collect coins and avoid obstacles",
-            "Press SPACE or click START to begin"
+            "Press SPACE or click START to begin",
+            "Press C or click CHARACTER to choose character"
         ]
         
         for i, instruction in enumerate(instructions):
             text = self.font.render(instruction, True, 'white')
-            text_rect = text.get_rect(center=(WIDTH//2, HEIGHT//2 + i * 40))
+            text_rect = text.get_rect(center=(WIDTH//2, HEIGHT//2 - 40 + i * 40))
             self.screen.blit(text, text_rect)
         
         # Start button
-        self.start_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 100, HEIGHT*3//4 - 25, 200, 50], 0, 10)
-        pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 100, HEIGHT*3//4 - 25, 200, 50], 3, 10)
+        self.start_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 150, HEIGHT*3//4 - 25, 140, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 150, HEIGHT*3//4 - 25, 140, 50], 3, 10)
         start_text = self.font.render("START", True, 'white')
         start_rect = start_text.get_rect(center=self.start_button.center)
         self.screen.blit(start_text, start_rect)
+
+        # Character button
+        self.character_button = pygame.draw.rect(self.screen, 'blue', [WIDTH//2 + 10, HEIGHT*3//4 - 25, 140, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', [WIDTH//2 + 10, HEIGHT*3//4 - 25, 140, 50], 3, 10)
+        char_font = pygame.font.Font(FONT_PATH, 20)  # Smaller font size
+        char_text = char_font.render("CHARACTER", True, 'white')
+        char_rect = char_text.get_rect(center=self.character_button.center)
+        self.screen.blit(char_text, char_rect)
         
         # High score display
         if self.state.high_score > 0:
             high_score_text = self.font.render(f"High Score: {int(self.state.high_score)}", True, 'yellow')
             high_score_rect = high_score_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
             self.screen.blit(high_score_text, high_score_rect)
+
+    def _draw_character_select_screen(self):
+        self.screen.fill(self.bg_color)
+        
+        # Title
+        title_text = self.title_font.render("CHOOSE CHARACTER", True, 'white')
+        title_rect = title_text.get_rect(center=(WIDTH//2, HEIGHT//4))
+        self.screen.blit(title_text, title_rect)
+        
+        # Character selection buttons
+        characters = ["boy", "girl", "cat"]
+        button_width = 120
+        button_height = 160
+        spacing = 20
+        total_width = (button_width * len(characters)) + (spacing * (len(characters) - 1))
+        start_x = (WIDTH - total_width) // 2
+        
+        for i, char_type in enumerate(characters):
+            x = start_x + (button_width + spacing) * i
+            y = HEIGHT//2 - button_height//2
+            
+            # Draw character button
+            button_color = 'green' if char_type == self.selected_character else 'blue'
+            self.character_buttons[char_type] = pygame.draw.rect(
+                self.screen, button_color, 
+                [x, y, button_width, button_height], 0, 10
+            )
+            pygame.draw.rect(
+                self.screen, 'white', 
+                [x, y, button_width, button_height], 3, 10
+            )
+            
+            # Draw character name
+            char_text = self.small_font.render(char_type.upper(), True, 'white')
+            char_rect = char_text.get_rect(center=(x + button_width//2, y + button_height - 20))
+            self.screen.blit(char_text, char_rect)
+            
+            # Draw character preview
+            try:
+                preview = pygame.transform.scale(
+                    pygame.image.load(f"assets/{char_type}/run/1.PNG").convert_alpha(),
+                    (button_width - 20, button_height - 40)
+                )
+                preview_rect = preview.get_rect(center=(x + button_width//2, y + button_height//2 - 10))
+                self.screen.blit(preview, preview_rect)
+            except:
+                pass  # Skip preview if image not found
+        
+        # Buttons
+        button_y = HEIGHT*3//4
+        button_spacing = 20
+        button_width = 120
+        
+        # Start button
+        self.start_button = pygame.draw.rect(self.screen, 'green', 
+            [WIDTH//2 - button_width - button_spacing//2, button_y, button_width, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', 
+            [WIDTH//2 - button_width - button_spacing//2, button_y, button_width, 50], 3, 10)
+        start_text = self.font.render("START", True, 'white')
+        start_rect = start_text.get_rect(center=self.start_button.center)
+        self.screen.blit(start_text, start_rect)
+        
+        # Back button
+        self.back_button = pygame.draw.rect(self.screen, 'red', 
+            [WIDTH//2 + button_spacing//2, button_y, button_width, 50], 0, 10)
+        pygame.draw.rect(self.screen, 'white', 
+            [WIDTH//2 + button_spacing//2, button_y, button_width, 50], 3, 10)
+        back_text = self.font.render("BACK", True, 'white')
+        back_rect = back_text.get_rect(center=self.back_button.center)
+        self.screen.blit(back_text, back_rect)
+        
+        # Instructions
+        instruction_text = self.font.render("Click a character to select, SPACE to start, ESC to go back", True, 'gray')
+        instruction_rect = instruction_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
+        self.screen.blit(instruction_text, instruction_rect)
 
     def _draw_game_over_screen(self):
         self.screen.fill((50, 50, 50))  # Dark background
@@ -304,7 +424,7 @@ class Game:
     def _draw_entities(self):
         draw_coins(self.coins, self.screen)
         draw_coin_counter(self.screen, self.font, self.state.coin_count)
-        self.player.draw(self.screen)
+        self.player.draw(self.screen, self.state.paused)
         self.rocket.draw(self.screen, self.font)
 
     def _draw_pause_menu(self):
