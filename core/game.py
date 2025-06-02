@@ -1,6 +1,7 @@
 import pygame
 import random
 
+from ai import RuleBasedAgent
 from config.settings import WIDTH, HEIGHT, FPS, BG_COLOR, FONT_PATH
 from core.state import GameState
 from core.events import handle_events
@@ -64,24 +65,32 @@ class Game:
         self.character_button = None
         self.back_button = None
 
+        # AI
+        self.agent = RuleBasedAgent()
+        self.player.controlled_by_ai = False
+
         self.running = True
 
     def run(self):
         while self.running:
+            events = pygame.event.get()
             self.clock.tick(FPS)
 
             # === Events ===
             if self.game_state == GameStates.START:
-                self._handle_start_events()
+                self._handle_start_events(events)
+
             elif self.game_state == GameStates.CHARACTER_SELECT:
                 self._handle_character_select_events()
             elif self.game_state == GameStates.PLAYING:
-                quit_requested = handle_events(self.state, self.player, None, None)
+                quit_requested = handle_events(self.state, self.player, None, None, events)
                 if quit_requested:
                     self.running = False
                     break
+
                 if self.state.paused:
                     self.game_state = GameStates.PAUSED
+
             elif self.game_state == GameStates.PAUSED:
                 quit_requested = handle_events(self.state, self.player, self.restart_button, self.quit_button)
                 if quit_requested:
@@ -91,8 +100,9 @@ class Game:
                     self._start_new_game()
                 elif not self.state.paused:
                     self.game_state = GameStates.PLAYING
+
             elif self.game_state == GameStates.GAME_OVER:
-                self._handle_game_over_events()
+                self._handle_game_over_events(events)
 
             # === Draw ===
             if self.game_state == GameStates.START:
@@ -108,8 +118,8 @@ class Game:
 
         pygame.quit()
 
-    def _handle_start_events(self):
-        for event in pygame.event.get():
+    def _handle_start_events(self, events):
+        for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -143,8 +153,8 @@ class Game:
                 elif event.key == pygame.K_SPACE:
                     self._start_new_game()
 
-    def _handle_game_over_events(self):
-        for event in pygame.event.get():
+    def _handle_game_over_events(self, events):
+        for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -160,12 +170,12 @@ class Game:
 
     def _draw_start_screen(self):
         self.screen.fill(self.bg_color)
-        
+
         # Title
         title_text = self.title_font.render("AI JETPACK RUNNER", True, 'white')
         title_rect = title_text.get_rect(center=(WIDTH//2, HEIGHT//4))
         self.screen.blit(title_text, title_rect)
-        
+
         # Instructions
         instructions = [
             "Use SPACE to boost your jetpack",
@@ -173,12 +183,12 @@ class Game:
             "Press SPACE or click START to begin",
             "Press C or click CHARACTER to choose character"
         ]
-        
+
         for i, instruction in enumerate(instructions):
             text = self.font.render(instruction, True, 'white')
             text_rect = text.get_rect(center=(WIDTH//2, HEIGHT//2 - 40 + i * 40))
             self.screen.blit(text, text_rect)
-        
+
         # Start button
         self.start_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 150, HEIGHT*3//4 - 25, 140, 50], 0, 10)
         pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 150, HEIGHT*3//4 - 25, 140, 50], 3, 10)
@@ -193,7 +203,7 @@ class Game:
         char_text = char_font.render("CHARACTER", True, 'white')
         char_rect = char_text.get_rect(center=self.character_button.center)
         self.screen.blit(char_text, char_rect)
-        
+
         # High score display
         if self.state.high_score > 0:
             high_score_text = self.font.render(f"High Score: {int(self.state.high_score)}", True, 'yellow')
@@ -277,43 +287,43 @@ class Game:
 
     def _draw_game_over_screen(self):
         self.screen.fill((50, 50, 50))  # Dark background
-        
+
         # Game Over title
         game_over_text = self.title_font.render("GAME OVER", True, 'red')
         game_over_rect = game_over_text.get_rect(center=(WIDTH//2, HEIGHT//4))
         self.screen.blit(game_over_text, game_over_rect)
-        
+
         # Score information
         score_info = [
             f"Distance: {int(self.state.distance)}",
             f"Coins Collected: {self.state.coin_count}",
             f"High Score: {int(self.state.high_score)}"
         ]
-        
+
         for i, info in enumerate(score_info):
             color = 'yellow' if 'High Score' in info else 'white'
             text = self.font.render(info, True, color)
             text_rect = text.get_rect(center=(WIDTH//2, HEIGHT//2 - 20 + i * 40))
             self.screen.blit(text, text_rect)
-        
+
         # Buttons
         button_y = HEIGHT*2//3
         button_font = pygame.font.Font(None, 24)
-        
+
         # Restart button
         self.restart_button = pygame.draw.rect(self.screen, 'green', [WIDTH//2 - 150, button_y, 140, 50], 0, 10)
         pygame.draw.rect(self.screen, 'white', [WIDTH//2 - 150, button_y, 140, 50], 3, 10)
         restart_text = button_font.render("RESTART", True, 'white')
         restart_rect = restart_text.get_rect(center=self.restart_button.center)
         self.screen.blit(restart_text, restart_rect)
-        
+
         # Menu button
         self.quit_button = pygame.draw.rect(self.screen, 'red', [WIDTH//2 + 10, button_y, 140, 50], 0, 10)
         pygame.draw.rect(self.screen, 'white', [WIDTH//2 + 10, button_y, 140, 50], 3, 10)
         menu_text = button_font.render("MENU", True, 'white')
         menu_rect = menu_text.get_rect(center=self.quit_button.center)
         self.screen.blit(menu_text, menu_rect)
-        
+
         # Instructions
         instruction_text = self.font.render("Press SPACE to restart or ESC for menu", True, 'gray')
         instruction_rect = instruction_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
@@ -342,6 +352,22 @@ class Game:
             self._update_game_logic()
 
         self._draw_entities()
+
+        # --- AI Mode HUD box ---
+        mode_label = 'AI MODE: ON' if self.player.controlled_by_ai else 'AI MODE: OFF'
+        color = 'green' if self.player.controlled_by_ai else 'gray'
+        mode_text = self.font.render(mode_label, True, 'white')
+        text_rect = mode_text.get_rect()
+        box_width = text_rect.width + 20
+        box_height = text_rect.height + 10
+
+        box_x = WIDTH - box_width - 20
+        box_y = HEIGHT - box_height - 20
+
+        pygame.draw.rect(self.screen, color, (box_x, box_y, box_width, box_height), border_radius=8)
+        pygame.draw.rect(self.screen, 'white', (box_x, box_y, box_width, box_height), width=2, border_radius=8)
+
+        self.screen.blit(mode_text, (box_x + 10, box_y + 5))
 
         if self.state.paused:
             self.restart_button, self.quit_button = self._draw_pause_menu()
@@ -378,6 +404,21 @@ class Game:
             # Animation + Distance
             self.player.update_animation()
 
+        # === AI Decision ===
+        if self.player.controlled_by_ai:
+            game_obs = {
+                "player_y": self.player.y,
+                "player": self.player,
+                "laser": self.laser_rect,
+                "rocket": self.rocket.get_hitbox(),
+                "coins": [coin.rect for coin in self.coins],
+            }
+            action = self.agent.decide(game_obs)
+            print(f"AI action: {action}")  # DEBUG
+            self.player.booster = (action == "jump")
+            if action == "jump":
+                self.player.booster_duration = self.player.max_booster_duration
+
             # Coin spawning
             if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
                 spawn_coins(self.coins)
@@ -399,7 +440,7 @@ class Game:
                 self.laser = Laser()
 
             # Physics
-            apply_gravity(self.player, self.player.booster)
+            apply_gravity(self.player)
             self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
             update_vertical_position(self.player, self.top_hit, self.bot_hit)
 
