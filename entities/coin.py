@@ -8,15 +8,15 @@ class Coin:
         self.y = y
         self.radius = 15
         self.value = value
-        self.rect = pygame.Rect(x - 15, y - 15, 30, 30)
+        self.image = pygame.transform.scale(pygame.image.load("assets/coin.png").convert_alpha(), (2*self.radius, 2*self.radius))
+        self.rect = self.image.get_rect(center=(x, y))
 
     def move(self, speed):
         self.x -= speed
         self.rect.x = self.x - self.radius
 
     def draw(self, surface):
-        pygame.draw.circle(surface, (255, 215, 0), (int(self.x), int(self.y)), self.radius)
-        pygame.draw.circle(surface, (255, 255, 255), (int(self.x), int(self.y)), self.radius - 6)
+        surface.blit(self.image, self.rect)
 
 def spawn_coins(coins, pattern=None):
     """
