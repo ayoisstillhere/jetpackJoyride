@@ -82,6 +82,7 @@ class Game:
 
             elif self.game_state == GameStates.CHARACTER_SELECT:
                 self._handle_character_select_events()
+
             elif self.game_state == GameStates.PLAYING:
                 quit_requested = handle_events(self.state, self.player, None, None, events)
                 if quit_requested:
@@ -212,12 +213,12 @@ class Game:
 
     def _draw_character_select_screen(self):
         self.screen.fill(self.bg_color)
-        
+
         # Title
         title_text = self.title_font.render("CHOOSE CHARACTER", True, 'white')
         title_rect = title_text.get_rect(center=(WIDTH//2, HEIGHT//4))
         self.screen.blit(title_text, title_rect)
-        
+
         # Character selection buttons
         characters = ["boy", "girl", "cat"]
         button_width = 120
@@ -225,27 +226,27 @@ class Game:
         spacing = 20
         total_width = (button_width * len(characters)) + (spacing * (len(characters) - 1))
         start_x = (WIDTH - total_width) // 2
-        
+
         for i, char_type in enumerate(characters):
             x = start_x + (button_width + spacing) * i
             y = HEIGHT//2 - button_height//2
-            
+
             # Draw character button
             button_color = 'green' if char_type == self.selected_character else 'blue'
             self.character_buttons[char_type] = pygame.draw.rect(
-                self.screen, button_color, 
+                self.screen, button_color,
                 [x, y, button_width, button_height], 0, 10
             )
             pygame.draw.rect(
-                self.screen, 'white', 
+                self.screen, 'white',
                 [x, y, button_width, button_height], 3, 10
             )
-            
+
             # Draw character name
             char_text = self.small_font.render(char_type.upper(), True, 'white')
             char_rect = char_text.get_rect(center=(x + button_width//2, y + button_height - 20))
             self.screen.blit(char_text, char_rect)
-            
+
             # Draw character preview
             try:
                 preview = pygame.transform.scale(
@@ -256,30 +257,30 @@ class Game:
                 self.screen.blit(preview, preview_rect)
             except:
                 pass  # Skip preview if image not found
-        
+
         # Buttons
         button_y = HEIGHT*3//4
         button_spacing = 20
         button_width = 120
-        
+
         # Start button
-        self.start_button = pygame.draw.rect(self.screen, 'green', 
+        self.start_button = pygame.draw.rect(self.screen, 'green',
             [WIDTH//2 - button_width - button_spacing//2, button_y, button_width, 50], 0, 10)
-        pygame.draw.rect(self.screen, 'white', 
+        pygame.draw.rect(self.screen, 'white',
             [WIDTH//2 - button_width - button_spacing//2, button_y, button_width, 50], 3, 10)
         start_text = self.font.render("START", True, 'white')
         start_rect = start_text.get_rect(center=self.start_button.center)
         self.screen.blit(start_text, start_rect)
-        
+
         # Back button
-        self.back_button = pygame.draw.rect(self.screen, 'red', 
+        self.back_button = pygame.draw.rect(self.screen, 'red',
             [WIDTH//2 + button_spacing//2, button_y, button_width, 50], 0, 10)
-        pygame.draw.rect(self.screen, 'white', 
+        pygame.draw.rect(self.screen, 'white',
             [WIDTH//2 + button_spacing//2, button_y, button_width, 50], 3, 10)
         back_text = self.font.render("BACK", True, 'white')
         back_rect = back_text.get_rect(center=self.back_button.center)
         self.screen.blit(back_text, back_rect)
-        
+
         # Instructions
         instruction_text = self.font.render("Click a character to select, SPACE to start, ESC to go back", True, 'gray')
         instruction_rect = instruction_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
@@ -379,17 +380,17 @@ class Game:
         self.rocket.reset()
         self.laser.reset()
         self.coins = []
-        
+
         # Reset systems
         self.difficulty_system.reset()
-        self.background_system.reset()  # 先完全重置背景系统
-        self.background_system.update_by_distance(0)  # 然后更新到初始位置
+        self.background_system.reset()
+        self.background_system.update_by_distance(0)
 
     def _update_game_logic(self):
         if not self.state.paused:
             # Update difficulty
             if self.difficulty_system.update(self.state.distance):
-                # 如果难度更新了，同时更新背景
+                # Update the background if the difficulty level changes
                 self.background_system.update_by_distance(self.state.distance)
 
             # Update game speed based on difficulty
@@ -414,52 +415,51 @@ class Game:
                 "coins": [coin.rect for coin in self.coins],
             }
             action = self.agent.decide(game_obs)
-            print(f"AI action: {action}")  # DEBUG
+            print(f"AI action: {action}")
             self.player.booster = (action == "jump")
             if action == "jump":
                 self.player.booster_duration = self.player.max_booster_duration
 
-            # Coin spawning
-            if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
-                spawn_coins(self.coins)
-                self.last_coin_spawn = self.state.distance
+        # Coin spawning
+        if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
+            spawn_coins(self.coins)
+            self.last_coin_spawn = self.state.distance
 
             update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self.difficulty_system.game_speed)
 
-            # Rocket
-            if not self.rocket.active:
-                self.rocket.counter += 1
-                if self.rocket.counter > 180:
-                    self.rocket.activate()
+        # Rocket
+        if not self.rocket.active:
+            self.rocket.counter += 1
+            if self.rocket.counter > 180:
+                self.rocket.activate()
 
-            self.rocket.update(self.player.y, self.state.paused, self.difficulty_system.game_speed)
+        self.rocket.update(self.player.y, self.state.paused, self.difficulty_system.game_speed)
 
-            # Laser
-            self.laser.update(self.difficulty_system.game_speed)
-            if self.laser.is_offscreen():
-                self.laser = Laser()
+        # Laser
+        self.laser.update(self.difficulty_system.game_speed)
+        if self.laser.is_offscreen():
+            self.laser = Laser()
 
-            # Physics
-            apply_gravity(self.player)
-            self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
-            update_vertical_position(self.player, self.top_hit, self.bot_hit)
+        # Physics
+        apply_gravity(self.player)
+        self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
+        update_vertical_position(self.player, self.top_hit, self.bot_hit)
 
-            # Collision
-            rocket_rect = self.rocket.get_hitbox()
-            if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
-                self._trigger_game_over()
+        # Collision
+        rocket_rect = self.rocket.get_hitbox()
+        if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
+            self._trigger_game_over()
 
-            if self.laser_rect.colliderect(self.player.get_hitbox()):
-                self._trigger_game_over()
+        if self.laser_rect.colliderect(self.player.get_hitbox()):
+            self._trigger_game_over()
 
-            # Background color variation
-            if self.state.distance % 500 == 0:
-                self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+        # Background color variation
+        if self.state.distance % 500 == 0:
+            self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 
     def _trigger_game_over(self):
         self.state.save_player_data()
         self.game_state = GameStates.GAME_OVER
-        # 重置背景到初始状态
         self.background_system.reset()
 
     def _draw_entities(self):
@@ -491,5 +491,5 @@ class Game:
         self.bg_color = BG_COLOR
 
     def _get_speed(self):
-        """获取当前游戏速度（保留此方法以兼容其他可能的调用）"""
+        """Retrieve current game speed (retained for compatibility with other possible calls)"""
         return self.difficulty_system.game_speed
