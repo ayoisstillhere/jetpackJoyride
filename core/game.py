@@ -330,7 +330,7 @@ class Game:
             font=self.font,
             bg_color=self.bg_color,
             lines=self.lines,
-            laser=self.laser.points,
+            laser_obj=self.laser,
             distance=self.state.distance,
             high_score=self.state.high_score,
             pause=self.state.paused,
