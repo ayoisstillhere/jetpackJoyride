@@ -1,19 +1,12 @@
-def apply_gravity(player):
+def apply_gravity(player, boosting: bool):
     """
     Apply gravity or upward thrust based on player state.
     """
-    if player.controlled_by_ai:
-        if player.booster_duration > 0:
-            player.booster = True
-            player.booster_duration -= 1
-        else:
-            player.booster = False
-
-    if player.booster:
+    player.booster = boosting
+    if boosting:
         player.velocity_y -= player.gravity
     else:
         player.velocity_y += player.gravity
-    # print(f"[PHYSICS] y_velocity: {player.velocity_y}")
 
 
 def update_vertical_position(player, colliding_top: bool, colliding_bottom: bool):
