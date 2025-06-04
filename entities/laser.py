@@ -3,7 +3,7 @@ import random
 from config.settings import WIDTH, HEIGHT
 
 class Laser:
-    # Constants for laser dimensions - adjust these to get the size you want
+    # Constants for laser dimensions - adjust these to get prefered size
     LASER_WIDTH = 200   # Width for horizontal lasers
     LASER_HEIGHT = 200  # Height for vertical lasers
     LASER_THICKNESS = 50  # Thickness of the laser beam
