@@ -79,13 +79,6 @@ class Player:
     def update_animation(self):
         self.counter = (self.counter + 1) % (6 * len(self.run_frames))
 
-    def apply_gravity(self, boosting):
-        self.booster = boosting
-        if boosting:
-            self.velocity_y -= self.gravity
-        else:
-            self.velocity_y += self.gravity
-
     def update_position(self, colliding_top, colliding_bottom):
         if (colliding_bottom and self.velocity_y > 0) or (colliding_top and self.velocity_y < 0):
             self.velocity_y = 0
