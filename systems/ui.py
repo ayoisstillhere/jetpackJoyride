@@ -1,7 +1,7 @@
 import pygame
 from config.settings import WIDTH, HEIGHT
 
-def draw_screen(screen, surface, font, bg_color, lines, laser, distance, high_score, pause, game_speed):
+def draw_screen(screen, surface, font, bg_color, lines, laser_obj, distance, high_score, pause, game_speed):
     # no fill black background, because background system has already drawn the background
     pygame.draw.rect(surface, (*bg_color, 50), [0, 0, WIDTH, HEIGHT])
     screen.blit(surface, (0, 0))
@@ -17,28 +17,19 @@ def draw_screen(screen, surface, font, bg_color, lines, laser, distance, high_sc
 
         if not pause:
             lines[i] -= game_speed
-            laser[0][0] -= game_speed
-            laser[1][0] -= game_speed
 
         if lines[i] < 0:
             lines[i] = WIDTH
 
-    # laser
-    start = laser[0]
-    end = laser[1]
-    pygame.draw.line(screen, 'yellow', start, end, 10)
-    pygame.draw.circle(screen, 'yellow', start, 12)
-    pygame.draw.circle(screen, 'yellow', end, 12)
+    # Update laser position if not paused
+    if not pause:
+        laser_obj.update(game_speed)
 
-    laser_rect = pygame.Rect(
-        min(start[0], end[0]),
-        min(start[1], end[1]) - 5,
-        abs(end[0] - start[0]),
-        10  # laser thickness
-    )
+    # Draw laser using the Laser class method
+    laser_rect = laser_obj.draw(screen)
 
-    # pint score
+    # print score
     screen.blit(font.render(f'Distance: {int(distance)} m', True, 'white'), (10, 10))
     screen.blit(font.render(f'High Score: {int(high_score)} m', True, 'white'), (10, 70))
 
-    return lines, top, bot, laser, laser_rect
+    return lines, top, bot, laser_obj.points, laser_rect

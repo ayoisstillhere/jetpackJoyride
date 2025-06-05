@@ -341,7 +341,7 @@ class Game:
             font=self.font,
             bg_color=self.bg_color,
             lines=self.lines,
-            laser=self.laser.points,
+            laser_obj=self.laser,
             distance=self.state.distance,
             high_score=self.state.high_score,
             pause=self.state.paused,
@@ -416,6 +416,7 @@ class Game:
             }
             action = self.agent.decide(game_obs)
             print(f"AI action: {action}")
+
             self.player.booster = (action == "jump")
             if action == "jump":
                 self.player.booster_duration = self.player.max_booster_duration
