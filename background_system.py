@@ -10,10 +10,10 @@ class BackgroundSystem:
         self.HEIGHT = height
         
         # scene change related
-        self.SCENE_CHANGE_DISTANCE = 2000  # 每2000米切换一次场景
-        self.current_distance = 0  # 当前行进距离
-        self.background_sequence = ['space', 'another-world', 'land', 'forest', 'mountain']  # 场景切换顺序
-        self.current_sequence_index = 0  # 当前场景索引
+        self.SCENE_CHANGE_DISTANCE = 2000  # every 2000m, change scene
+        self.current_distance = 0  # current distance
+        self.background_sequence = ['space', 'another-world', 'land', 'forest', 'mountain']  # scene change sequence
+        self.current_sequence_index = 0  # current scene index
         
         # portal related
         self.portal = Portal(WIDTH - 300, HEIGHT//2 - 150)  # create portal on the right side of the screen, slightly left
@@ -293,7 +293,7 @@ class BackgroundSystem:
         if pause:
             game_speed = 0
             
-        # 根据当前背景类型选择要绘制的图层
+        # select layers to draw based on current background type
         current_type = self.current_background_type
         if current_type == 'space':
             layers = self.background_themes[self.THEME_SPACE]['space_layers']
@@ -306,30 +306,30 @@ class BackgroundSystem:
         elif current_type == 'mountain':
             layers = self.background_themes[self.THEME_NATURE]['mountain_layers']
         
-        # 绘制每一层
+        # draw each layer
         for layer_name, layer_image in layers.items():
             if layer_image is not None:
-                # 获取图层位置
+                # get layer position
                 x = self.layer_positions[layer_name][0]
                 y = self.layer_positions[layer_name][1]
                 
-                # 绘制主图层
+                # draw main layer
                 screen.blit(layer_image, (x, y))
                 
-                # 如果图层移出屏幕，在后面绘制一个重复的图层
+                # if layer is out of screen, draw a duplicate layer behind
                 if x + layer_image.get_width() < self.WIDTH:
                     screen.blit(layer_image, (x + layer_image.get_width(), y))
                 
-                # 如果不是暂停状态，更新图层位置
+                # if not pause, update layer position
                 if not pause:
                     speed = self.parallax_speeds[layer_name] * game_speed
                     self.layer_positions[layer_name][0] -= speed
                     
-                    # 如果图层完全移出屏幕，重置位置
+                    # if layer is completely out of screen, reset position
                     if self.layer_positions[layer_name][0] <= -layer_image.get_width():
                         self.layer_positions[layer_name][0] = 0
 
-        # 在最后绘制传送门
+        # draw portal at the end
         self.portal.draw(screen)
 
     def change_theme(self, new_theme):
@@ -414,12 +414,12 @@ class BackgroundSystem:
             self.current_distance = distance
 
     def update_by_distance(self, distance):
-        """根据距离更新背景场景
+        """update background by distance
         
         Args:
-            distance (float): 当前行进的总距离（单位：米）
+            distance (float): current total distance (unit: meter)
         """
-        # 计算新的场景索引
+        # calculate new scene index
         new_sequence_index = int(distance // self.SCENE_CHANGE_DISTANCE) % len(self.background_sequence)
         if new_sequence_index != self.current_sequence_index:
             self.current_sequence_index = new_sequence_index
@@ -430,17 +430,17 @@ class BackgroundSystem:
         self.current_distance = distance
 
     def reset(self):
-        """重置背景到初始状态"""
+        """reset background to initial state"""
         self.current_distance = 0
         self.current_sequence_index = 0
         self.current_background_type = 'space'
         self.current_theme = self.THEME_SPACE
         
-        # 重置所有图层位置
+        # reset all layer positions
         for layer_name in self.layer_positions:
             self.layer_positions[layer_name] = [0, 0]
             
-        # 重置传送门
-        self.portal.reset()  # 使用Portal类的reset方法
-        self.portal.x = self.WIDTH - 300  # 重置传送门位置到初始位置
+        # reset portal
+        self.portal.reset()  # use Portal class's reset method
+        self.portal.x = self.WIDTH - 300  # reset portal position to initial position
         self.portal.y = self.HEIGHT//2 - 150 
