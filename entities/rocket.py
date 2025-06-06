@@ -2,13 +2,20 @@ import pygame
 from config.settings import WIDTH, HEIGHT
 
 class Rocket:
-    def __init__(self):
+    def __init__(self, render=True):
         self.reset()
-        self.rocket_img = pygame.transform.flip(
-        pygame.transform.scale(
-            pygame.image.load("assets/rocket.png").convert_alpha(), (100, 30)
-        ), True, False
-    )
+        self.render = render
+
+        if self.render:
+            self.rocket_img = pygame.transform.flip(
+                pygame.transform.scale(
+                    pygame.image.load("assets/rocket.png").convert_alpha(),
+                    (100, 30)
+                ),
+                True, False
+            )
+        else:
+            self.rocket_img = None
 
     def reset(self):
         self.x = WIDTH
@@ -45,7 +52,7 @@ class Rocket:
             self.reset()
 
     def draw(self, screen, font):
-        if not self.active:
+        if not self.active or not self.render or not self.rocket_img:
             return
 
         if self.mode == 0:

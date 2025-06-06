@@ -8,18 +8,18 @@ class BackgroundSystem:
     def __init__(self, width, height):
         self.WIDTH = width
         self.HEIGHT = height
-        
+
         # 场景切换相关
         self.SCENE_CHANGE_DISTANCE = 2000  # 每2000米切换一次场景
         self.current_distance = 0  # 当前行进距离
         self.background_sequence = ['space', 'another-world', 'land', 'forest', 'mountain']  # 场景切换顺序
         self.current_sequence_index = 0  # 当前场景索引
-        
+
         # 传送门相关
         self.portal = Portal(WIDTH - 300, HEIGHT//2 - 150)  # 在屏幕右侧中间创建传送门，位置稍微靠左
         self.portal_activation_distance = 200  # 在切换前200米显示传送门
         self.portal_after_effect_distance = 50  # 切换后继续显示50米
-        
+
         # 主题相关
         self.THEME_SPACE = "space"  # 太空主题
         self.THEME_NATURE = "nature"  # 自然主题
@@ -120,7 +120,7 @@ class BackgroundSystem:
         # 加载太空主题的分层背景
         space_folder = os.path.join("backgrounds", "space_background_pack")
         print(f"检查太空背景文件夹: {space_folder}")
-        
+
         # 加载太空层
         if os.path.exists(space_folder):
             layer_files = {
@@ -130,7 +130,7 @@ class BackgroundSystem:
                 'ring_planet': os.path.join('layers', 'parallax-space-ring-planet.png'),
                 'big_planet': os.path.join('layers', 'parallax-space-big-planet.png')
             }
-            
+
             for layer, filename in layer_files.items():
                 file_path = os.path.join(space_folder, filename)
                 print(f"尝试加载文件: {file_path}")
@@ -153,7 +153,7 @@ class BackgroundSystem:
                     'sky': 'sky.png',
                     'composed': 'composed-bg.png'
                 }
-                
+
                 for layer, filename in layer_files.items():
                     file_path = os.path.join(another_world_folder, filename)
                     print(f"尝试加载文件: {file_path}")
@@ -176,7 +176,7 @@ class BackgroundSystem:
                     'sky': 'sky.png',
                     'back': 'back.png'
                 }
-                
+
                 for layer, filename in layer_files.items():
                     file_path = os.path.join(land_folder, filename)
                     print(f"尝试加载文件: {file_path}")
@@ -203,7 +203,7 @@ class BackgroundSystem:
                 'middle_trees': os.path.join('layers', 'parallax-forest-middle-trees.png'),
                 'front_trees': os.path.join('layers', 'parallax-forest-front-trees.png')
             }
-            
+
             for layer, filename in layer_files.items():
                 file_path = os.path.join(forest_folder, filename)
                 print(f"尝试加载文件: {file_path}")
@@ -231,7 +231,7 @@ class BackgroundSystem:
                 'trees': os.path.join('layers', 'parallax-mountain-trees.png'),
                 'foreground_trees': os.path.join('layers', 'parallax-mountain-foreground-trees.png')
             }
-            
+
             for layer, filename in layer_files.items():
                 file_path = os.path.join(mountain_folder, filename)
                 print(f"尝试加载文件: {file_path}")
@@ -249,10 +249,10 @@ class BackgroundSystem:
             print(f"找不到山脉背景文件夹: {mountain_folder}")
 
         # 检查是否有任何背景被加载
-        if (not any(self.background_themes[self.THEME_SPACE]['space_layers'].values()) and 
+        if (not any(self.background_themes[self.THEME_SPACE]['space_layers'].values()) and
             not any(self.background_themes[self.THEME_SPACE]['another_world'].values()) and
             not any(self.background_themes[self.THEME_SPACE]['land'].values()) and
-            not any(self.background_themes[self.THEME_NATURE]['forest_layers'].values()) and 
+            not any(self.background_themes[self.THEME_NATURE]['forest_layers'].values()) and
             not any(self.background_themes[self.THEME_NATURE]['mountain_layers'].values())):
             print("警告：没有成功加载任何背景图片！")
         else:
@@ -292,7 +292,7 @@ class BackgroundSystem:
     def draw_background(self, screen, pause=False, game_speed=3):
         if pause:
             game_speed = 0
-            
+
         # 根据当前背景类型选择要绘制的图层
         current_type = self.current_background_type
         if current_type == 'space':
@@ -305,26 +305,26 @@ class BackgroundSystem:
             layers = self.background_themes[self.THEME_NATURE]['forest_layers']
         elif current_type == 'mountain':
             layers = self.background_themes[self.THEME_NATURE]['mountain_layers']
-        
+
         # 绘制每一层
         for layer_name, layer_image in layers.items():
             if layer_image is not None:
                 # 获取图层位置
                 x = self.layer_positions[layer_name][0]
                 y = self.layer_positions[layer_name][1]
-                
+
                 # 绘制主图层
                 screen.blit(layer_image, (x, y))
-                
+
                 # 如果图层移出屏幕，在后面绘制一个重复的图层
                 if x + layer_image.get_width() < self.WIDTH:
                     screen.blit(layer_image, (x + layer_image.get_width(), y))
-                
+
                 # 如果不是暂停状态，更新图层位置
                 if not pause:
                     speed = self.parallax_speeds[layer_name] * game_speed
                     self.layer_positions[layer_name][0] -= speed
-                    
+
                     # 如果图层完全移出屏幕，重置位置
                     if self.layer_positions[layer_name][0] <= -layer_image.get_width():
                         self.layer_positions[layer_name][0] = 0
@@ -355,12 +355,12 @@ class BackgroundSystem:
         if not pause and distance is not None:
             # 更新背景位置
             self.update_layer_positions(game_speed)
-            
+
             # 计算到下一个场景切换点的距离
             current_section = int(distance // self.SCENE_CHANGE_DISTANCE)
             next_change_point = (current_section + 1) * self.SCENE_CHANGE_DISTANCE
             distance_to_change = next_change_point - distance
-            
+
             # 调试信息输出
             if int(distance) % 100 == 0:  # 每100米打印一次信息
                 print(f"当前距离: {distance:.1f}米")
@@ -368,7 +368,7 @@ class BackgroundSystem:
                 print(f"距离切换还有: {distance_to_change:.1f}米")
                 print(f"传送门状态: {'激活' if self.portal.active else '未激活'}")
                 print(f"传送门触发状态: {'已触发' if self.portal.triggered else '未触发'}")
-            
+
             # 强制关闭传送门的条件
             if distance_to_change > self.portal_activation_distance + 100:  # 在远离切换点时
                 if self.portal.active or self.portal.triggered:  # 如果传送门还在活动
@@ -376,7 +376,7 @@ class BackgroundSystem:
                     self.portal.reset()
                     self.portal.x = self.WIDTH - 300
                     self.portal.y = self.HEIGHT//2 - 150
-            
+
             # 处理传送门出现
             elif distance_to_change <= self.portal_activation_distance and not self.portal.active:
                 print(f"=== 传送门触发条件检查 ===")
@@ -384,17 +384,17 @@ class BackgroundSystem:
                 print(f"当前总距离: {distance:.1f}")
                 print(f"传送门当前状态: {self.portal.active}")
                 print(f"传送门已触发状态: {self.portal.triggered}")
-                
+
                 print(f"传送门出现！剩余距离: {distance_to_change:.1f}米")
                 self.portal.activate()
                 # 确保传送门从右侧出现
                 self.portal.x = self.WIDTH - 300
                 self.portal.y = self.HEIGHT//2 - 150
-            
+
             # 更新传送门
             if self.portal.active:
                 self.portal.update(game_speed)
-                
+
                 # 检查玩家是否与传送门碰撞
                 if player_rect and not self.portal.triggered:
                     portal_rect = self.portal.get_rect()
@@ -410,12 +410,12 @@ class BackgroundSystem:
                             self.portal.deactivate()
                             # 确保传送门完全重置
                             self.portal.reset()
-            
+
             self.current_distance = distance
 
     def update_by_distance(self, distance):
         """根据距离更新背景场景
-        
+
         Args:
             distance (float): 当前行进的总距离（单位：米）
         """
@@ -426,7 +426,7 @@ class BackgroundSystem:
             new_background = self.background_sequence[self.current_sequence_index]
             print(f"切换背景到: {new_background}，当前距离: {distance}米")
             self.change_background_type(new_background)
-        
+
         self.current_distance = distance
 
     def reset(self):
@@ -435,12 +435,12 @@ class BackgroundSystem:
         self.current_sequence_index = 0
         self.current_background_type = 'space'
         self.current_theme = self.THEME_SPACE
-        
+
         # 重置所有图层位置
         for layer_name in self.layer_positions:
             self.layer_positions[layer_name] = [0, 0]
-            
+
         # 重置传送门
         self.portal.reset()  # 使用Portal类的reset方法
         self.portal.x = self.WIDTH - 300  # 重置传送门位置到初始位置
-        self.portal.y = self.HEIGHT//2 - 150 
+        self.portal.y = self.HEIGHT//2 - 150
