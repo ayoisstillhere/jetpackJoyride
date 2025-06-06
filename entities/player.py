@@ -5,10 +5,10 @@ class Player:
     def __init__(self, start_x=120, start_y=PLAYER_INIT_Y, character_type="boy"):
         self.x = start_x
         self.y = start_y
-        self.width = 55
+        self.width = 48
         self.height = 60
         self.velocity_y = 0
-        self.gravity = 0.8
+        self.gravity = 0.4
         self.counter = 0  # frame index control
         self.booster = False
         self.controlled_by_ai = False
@@ -49,7 +49,7 @@ class Player:
         )
 
     def get_hitbox(self):
-        return pygame.Rect(self.x, self.y + 10, self.width, self.height)
+        return pygame.Rect(self.x, self.y + 5, self.width, self.height)
 
     def draw(self, screen, paused=False):
         if paused:  # When paused, show static image
