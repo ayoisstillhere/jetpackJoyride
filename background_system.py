@@ -9,47 +9,47 @@ class BackgroundSystem:
         self.WIDTH = width
         self.HEIGHT = height
         
-        # 场景切换相关
+        # scene change related
         self.SCENE_CHANGE_DISTANCE = 2000  # 每2000米切换一次场景
         self.current_distance = 0  # 当前行进距离
         self.background_sequence = ['space', 'another-world', 'land', 'forest', 'mountain']  # 场景切换顺序
         self.current_sequence_index = 0  # 当前场景索引
         
-        # 传送门相关
-        self.portal = Portal(WIDTH - 300, HEIGHT//2 - 150)  # 在屏幕右侧中间创建传送门，位置稍微靠左
-        self.portal_activation_distance = 200  # 在切换前200米显示传送门
-        self.portal_after_effect_distance = 50  # 切换后继续显示50米
+        # portal related
+        self.portal = Portal(WIDTH - 300, HEIGHT//2 - 150)  # create portal on the right side of the screen, slightly left
+        self.portal_activation_distance = 200  # show portal 200m before scene change
+        self.portal_after_effect_distance = 50  # continue to show portal for 50m after scene change
         
-        # 主题相关
-        self.THEME_SPACE = "space"  # 太空主题
-        self.THEME_NATURE = "nature"  # 自然主题
+        # theme related
+        self.THEME_SPACE = "space"  # space theme
+        self.THEME_NATURE = "nature"  # nature theme
         self.current_theme = self.THEME_SPACE
         self.background_themes = {
             self.THEME_SPACE: {
-                'space_layers': {  # 太空层
+                'space_layers': {  # space layer
                     'background': None,
                     'stars': None,
                     'far_planets': None,
                     'ring_planet': None,
                     'big_planet': None
                 },
-                'another_world': {  # 异世界层
+                'another_world': {  # another-world layer
                     'sky': None,
                     'composed': None
                 },
-                'land': {  # 陆地层
+                'land': {  # land layer
                     'sky': None,
                     'back': None
                 }
             },
             self.THEME_NATURE: {
-                'forest_layers': {  # 森林层
+                'forest_layers': {  # forest layer
                     'back_trees': None,
                     'lights': None,
                     'middle_trees': None,
                     'front_trees': None
                 },
-                'mountain_layers': {  # 山脉层
+                'mountain_layers': {  # mountain layer
                     'sky': None,
                     'mountains': None,
                     'far_mountains': None,
@@ -59,72 +59,72 @@ class BackgroundSystem:
             }
         }
 
-        # 视差滚动速度
+        # parallax scrolling speed
         self.parallax_speeds = {
-            # 太空层速度
+            # space layer speed
             'background': 0.2,
             'stars': 0.3,
             'far_planets': 0.4,
             'ring_planet': 0.6,
             'big_planet': 0.8,
-            # 异世界层速度
+            # another-world layer speed
             'sky': 0.2,
             'composed': 0.4,
-            # 陆地层速度
+            # land layer speed
             'back': 0.4,
-            # 森林层速度
+            # forest layer speed
             'back_trees': 0.2,
             'lights': 0.3,
             'middle_trees': 0.6,
             'front_trees': 0.8,
-            # 山脉层速度
+            # mountain layer speed
             'far_mountains': 0.3,
             'mountains': 0.4,
             'trees': 0.6,
             'foreground_trees': 0.8
         }
 
-        # 图层位置
+        # layer positions
         self.layer_positions = {
-            # 太空层位置
+            # space layer positions
             'background': [0, 0],
             'stars': [0, 0],
             'far_planets': [0, 0],
             'ring_planet': [0, 0],
             'big_planet': [0, 0],
-            # 异世界层位置
+            # another-world layer positions
             'sky': [0, 0],
             'composed': [0, 0],
-            # 陆地层位置
+            # land layer positions
             'back': [0, 0],
-            # 森林层位置
+            # forest layer positions
             'back_trees': [0, 0],
             'lights': [0, 0],
             'middle_trees': [0, 0],
             'front_trees': [0, 0],
-            # 山脉层位置
+            # mountain layer positions
             'far_mountains': [0, 0],
             'mountains': [0, 0],
             'trees': [0, 0],
             'foreground_trees': [0, 0]
         }
 
-        # 当前使用的背景类型
-        self.current_background_type = 'space'  # 可选值: 'space', 'another-world', 'land', 'forest', 'mountain'
+        # current used background type
+        self.current_background_type = 'space'  # optional values: 'space', 'another-world', 'land', 'forest', 'mountain'
 
-        # 加载背景
+        # load background images
         self.load_background_images()
 
     def load_background_images(self):
-        print("开始加载背景图片...")
-        # 加载太空主题的分层背景
+        print("Start loading background images...")
+        # load space theme parallax background images
         space_folder = os.path.join("backgrounds", "space_background_pack")
-        print(f"检查太空背景文件夹: {space_folder}")
+        print(f"Checking space background folder: {space_folder}")
         
-        # 加载太空层
+        # load space layer parallax background images
         if os.path.exists(space_folder):
             layer_files = {
-                'background': os.path.join('layers', 'parallax-space-background.png'),  # 修正拼写错误
+                'background': os.path.join('layers', 'parallax-space-background.png'),  # fix spelling error
                 'stars': os.path.join('layers', 'parallax-space-stars.png'),
                 'far_planets': os.path.join('layers', 'parallax-space-far-planets.png'),
                 'ring_planet': os.path.join('layers', 'parallax-space-ring-planet.png'),
@@ -133,21 +133,21 @@ class BackgroundSystem:
             
             for layer, filename in layer_files.items():
                 file_path = os.path.join(space_folder, filename)
-                print(f"尝试加载文件: {file_path}")
+                print(f"Trying to load file: {file_path}")
                 if os.path.exists(file_path):
                     try:
                         img = pygame.image.load(file_path).convert_alpha()
                         img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
                         self.background_themes[self.THEME_SPACE]['space_layers'][layer] = img
-                        print(f"成功加载太空 {layer} 层: {filename}")
+                        print(f"Successfully loaded space {layer} layer: {filename}")
                     except pygame.error as e:
-                        print(f"无法加载图片 {file_path}: {e}")
+                        print(f"Failed to load image {file_path}: {e}")
                 else:
-                    print(f"缺失太空层文件: {file_path}")
+                    print(f"Missing space layer file: {file_path}")
 
-            # 加载异世界层
+            # load another-world layer
             another_world_folder = os.path.join(space_folder, 'another-world')
-            print(f"检查异世界文件夹: {another_world_folder}")
+            print(f"Checking another-world folder: {another_world_folder}")
             if os.path.exists(another_world_folder):
                 layer_files = {
                     'sky': 'sky.png',
@@ -156,21 +156,21 @@ class BackgroundSystem:
                 
                 for layer, filename in layer_files.items():
                     file_path = os.path.join(another_world_folder, filename)
-                    print(f"尝试加载文件: {file_path}")
+                    print(f"Trying to load file: {file_path}")
                     if os.path.exists(file_path):
                         try:
                             img = pygame.image.load(file_path).convert_alpha()
                             img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
                             self.background_themes[self.THEME_SPACE]['another_world'][layer] = img
-                            print(f"成功加载异世界 {layer} 层: {filename}")
+                            print(f"Successfully loaded another-world {layer} layer: {filename}")
                         except pygame.error as e:
-                            print(f"无法加载图片 {file_path}: {e}")
+                            print(f"Failed to load image {file_path}: {e}")
                     else:
-                        print(f"缺失异世界层文件: {file_path}")
+                        print(f"Missing another-world layer file: {file_path}")
 
-            # 加载陆地层
+            # load land layer
             land_folder = os.path.join(space_folder, 'land')
-            print(f"检查陆地文件夹: {land_folder}")
+            print(f"Checking land folder: {land_folder}")
             if os.path.exists(land_folder):
                 layer_files = {
                     'sky': 'sky.png',
@@ -179,23 +179,23 @@ class BackgroundSystem:
                 
                 for layer, filename in layer_files.items():
                     file_path = os.path.join(land_folder, filename)
-                    print(f"尝试加载文件: {file_path}")
+                    print(f"Trying to load file: {file_path}")
                     if os.path.exists(file_path):
                         try:
                             img = pygame.image.load(file_path).convert_alpha()
                             img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
                             self.background_themes[self.THEME_SPACE]['land'][layer] = img
-                            print(f"成功加载陆地 {layer} 层: {filename}")
+                            print(f"Successfully loaded land {layer} layer: {filename}")
                         except pygame.error as e:
-                            print(f"无法加载图片 {file_path}: {e}")
+                            print(f"Failed to load image {file_path}: {e}")
                     else:
-                        print(f"缺失陆地层文件: {file_path}")
+                        print(f"Missing land layer file: {file_path}")
         else:
-            print(f"找不到太空背景文件夹: {space_folder}")
+            print(f"Space background folder not found: {space_folder}")
 
-        # 加载森林主题的分层背景
+        # load forest theme parallax background
         forest_folder = os.path.join("backgrounds", "parallax_forest_pack")
-        print(f"检查森林背景文件夹: {forest_folder}")
+        print(f"Checking forest background folder: {forest_folder}")
         if os.path.exists(forest_folder):
             layer_files = {
                 'back_trees': os.path.join('layers', 'parallax-forest-back-trees.png'),
@@ -206,23 +206,23 @@ class BackgroundSystem:
             
             for layer, filename in layer_files.items():
                 file_path = os.path.join(forest_folder, filename)
-                print(f"尝试加载文件: {file_path}")
+                print(f"Trying to load file: {file_path}")
                 if os.path.exists(file_path):
                     try:
                         img = pygame.image.load(file_path).convert_alpha()
                         img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
                         self.background_themes[self.THEME_NATURE]['forest_layers'][layer] = img
-                        print(f"成功加载森林 {layer} 层: {filename}")
+                        print(f"Successfully loaded forest {layer} layer: {filename}")
                     except pygame.error as e:
-                        print(f"无法加载图片 {file_path}: {e}")
+                        print(f"Failed to load image {file_path}: {e}")
                 else:
-                    print(f"缺失森林层文件: {file_path}")
+                    print(f"Missing forest layer file: {file_path}")
         else:
-            print(f"找不到森林背景文件夹: {forest_folder}")
+            print(f"Forest background folder not found: {forest_folder}")
 
-        # 加载山脉主题的分层背景
+        # load mountain theme parallax background
         mountain_folder = os.path.join("backgrounds", "parallax_mountain_pack")
-        print(f"检查山脉背景文件夹: {mountain_folder}")
+        print(f"Checking mountain background folder: {mountain_folder}")
         if os.path.exists(mountain_folder):
             layer_files = {
                 'sky': os.path.join('layers', 'parallax-mountain-bg.png'),
@@ -234,29 +234,29 @@ class BackgroundSystem:
             
             for layer, filename in layer_files.items():
                 file_path = os.path.join(mountain_folder, filename)
-                print(f"尝试加载文件: {file_path}")
+                print(f"Trying to load file: {file_path}")
                 if os.path.exists(file_path):
                     try:
                         img = pygame.image.load(file_path).convert_alpha()
                         img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
                         self.background_themes[self.THEME_NATURE]['mountain_layers'][layer] = img
-                        print(f"成功加载山脉 {layer} 层: {filename}")
+                        print(f"Successfully loaded mountain {layer} layer: {filename}")
                     except pygame.error as e:
-                        print(f"无法加载图片 {file_path}: {e}")
+                        print(f"Failed to load image {file_path}: {e}")
                 else:
-                    print(f"缺失山脉层文件: {file_path}")
+                    print(f"Missing mountain layer file: {file_path}")
         else:
-            print(f"找不到山脉背景文件夹: {mountain_folder}")
+            print(f"Mountain background folder not found: {mountain_folder}")
 
-        # 检查是否有任何背景被加载
+        # check if any background was loaded
         if (not any(self.background_themes[self.THEME_SPACE]['space_layers'].values()) and 
             not any(self.background_themes[self.THEME_SPACE]['another_world'].values()) and
             not any(self.background_themes[self.THEME_SPACE]['land'].values()) and
             not any(self.background_themes[self.THEME_NATURE]['forest_layers'].values()) and 
             not any(self.background_themes[self.THEME_NATURE]['mountain_layers'].values())):
-            print("警告：没有成功加载任何背景图片！")
+            print("Warning: No background images were loaded successfully!")
         else:
-            print("背景加载完成！")
+            print("Background loading completed!")
 
     def update_layer_positions(self, game_speed):
         if self.current_background_type == 'space':
@@ -339,7 +339,7 @@ class BackgroundSystem:
                 self.current_background_type = random.choice(['space', 'another-world', 'land'])
             else:  # THEME_NATURE
                 self.current_background_type = random.choice(['forest', 'mountain'])
-            print(f"切换主题到: {new_theme} ({self.current_background_type})")
+            print(f"Switching theme to: {new_theme} ({self.current_background_type})")
 
     def change_background_type(self, new_type):
         if new_type in ['space', 'another-world', 'land', 'forest', 'mountain']:
@@ -348,67 +348,67 @@ class BackgroundSystem:
             else:
                 self.current_theme = self.THEME_NATURE
             self.current_background_type = new_type
-            print(f"切换背景类型到: {new_type}")
+            print(f"Switching background type to: {new_type}")
 
     def update(self, pause=False, distance=None, game_speed=3, player_rect=None):
-        """更新背景状态"""
+        """Update background state"""
         if not pause and distance is not None:
-            # 更新背景位置
+            # update background position
             self.update_layer_positions(game_speed)
             
-            # 计算到下一个场景切换点的距离
+            # calculate distance to next scene change point
             current_section = int(distance // self.SCENE_CHANGE_DISTANCE)
             next_change_point = (current_section + 1) * self.SCENE_CHANGE_DISTANCE
             distance_to_change = next_change_point - distance
             
-            # 调试信息输出
-            if int(distance) % 100 == 0:  # 每100米打印一次信息
-                print(f"当前距离: {distance:.1f}米")
-                print(f"下一个切换点: {next_change_point}米")
-                print(f"距离切换还有: {distance_to_change:.1f}米")
-                print(f"传送门状态: {'激活' if self.portal.active else '未激活'}")
-                print(f"传送门触发状态: {'已触发' if self.portal.triggered else '未触发'}")
+            # debug information output
+            if int(distance) % 100 == 0:  # print info every 100 meters
+                print(f"Current distance: {distance:.1f}m")
+                print(f"Next change point: {next_change_point}m")
+                print(f"Distance to change: {distance_to_change:.1f}m")
+                print(f"Portal status: {'active' if self.portal.active else 'inactive'}")
+                print(f"Portal trigger status: {'triggered' if self.portal.triggered else 'not triggered'}")
             
-            # 强制关闭传送门的条件
-            if distance_to_change > self.portal_activation_distance + 100:  # 在远离切换点时
-                if self.portal.active or self.portal.triggered:  # 如果传送门还在活动
-                    print(f"强制关闭传送门并重置状态")
+            # force close portal conditions
+            if distance_to_change > self.portal_activation_distance + 100:  # when far from change point
+                if self.portal.active or self.portal.triggered:  # if portal is still active
+                    print(f"Force closing portal and resetting state")
                     self.portal.reset()
                     self.portal.x = self.WIDTH - 300
                     self.portal.y = self.HEIGHT//2 - 150
             
-            # 处理传送门出现
+            # handle portal appearance
             elif distance_to_change <= self.portal_activation_distance and not self.portal.active:
-                print(f"=== 传送门触发条件检查 ===")
-                print(f"距离切换点距离: {distance_to_change:.1f} <= {self.portal_activation_distance}")
-                print(f"当前总距离: {distance:.1f}")
-                print(f"传送门当前状态: {self.portal.active}")
-                print(f"传送门已触发状态: {self.portal.triggered}")
+                print(f"=== Portal Trigger Condition Check ===")
+                print(f"Distance to change point: {distance_to_change:.1f} <= {self.portal_activation_distance}")
+                print(f"Current total distance: {distance:.1f}")
+                print(f"Portal current status: {self.portal.active}")
+                print(f"Portal triggered status: {self.portal.triggered}")
                 
-                print(f"传送门出现！剩余距离: {distance_to_change:.1f}米")
+                print(f"Portal appears! Remaining distance: {distance_to_change:.1f}m")
                 self.portal.activate()
-                # 确保传送门从右侧出现
+                # ensure portal appears from right side
                 self.portal.x = self.WIDTH - 300
                 self.portal.y = self.HEIGHT//2 - 150
             
-            # 更新传送门
+            # update portal
             if self.portal.active:
                 self.portal.update(game_speed)
                 
-                # 检查玩家是否与传送门碰撞
+                # check if player collides with portal
                 if player_rect and not self.portal.triggered:
                     portal_rect = self.portal.get_rect()
                     if portal_rect.colliderect(player_rect):
-                        print("玩家碰到传送门！准备切换场景...")
+                        print("Player hit portal! Preparing scene change...")
                         self.portal.triggered = True
                         new_sequence_index = current_section % len(self.background_sequence)
                         if new_sequence_index != self.current_sequence_index:
                             self.current_sequence_index = new_sequence_index
                             new_background = self.background_sequence[self.current_sequence_index]
-                            print(f"通过传送门！切换背景到: {new_background}，当前距离: {distance}米")
+                            print(f"Through portal! Switching background to: {new_background}, current distance: {distance}m")
                             self.change_background_type(new_background)
                             self.portal.deactivate()
-                            # 确保传送门完全重置
+                            # ensure portal is fully reset
                             self.portal.reset()
             
             self.current_distance = distance
@@ -424,7 +424,7 @@ class BackgroundSystem:
         if new_sequence_index != self.current_sequence_index:
             self.current_sequence_index = new_sequence_index
             new_background = self.background_sequence[self.current_sequence_index]
-            print(f"切换背景到: {new_background}，当前距离: {distance}米")
+            print(f"Switching background to: {new_background}, current distance: {distance}m")
             self.change_background_type(new_background)
         
         self.current_distance = distance
