@@ -3,6 +3,7 @@ class DifficultySystem:
         self.reset()
 
     def reset(self):
+        """reset difficulty system"""
         """Reset the difficulty system"""
         self.difficulty_level = 1
         self.game_speed = 3  # Initial speed
@@ -16,10 +17,13 @@ class DifficultySystem:
             current_distance (float): Current distance traveled
 
         Returns:
+            bool: difficulty changed
             bool: Whether the difficulty has changed
         """
+        # update game speed (faster speed growth)
         # Update game speed (faster speed increase)
         if current_distance < 50000:
+            self.game_speed = 3 + (current_distance // 500) / 5  # every 500m, increase 0.2 speed
             self.game_speed = 3 + (current_distance // 500) / 5  # Increase speed by 0.2 every 500 meters
         else:
             self.game_speed = 13  # Max speed
@@ -49,8 +53,10 @@ class DifficultySystem:
         """Return the obstacle spawn frequency for the current difficulty
 
         Returns:
+            dict: contains the generation interval of various obstacles (frames)
             dict: Contains spawn intervals (in frames) for each obstacle type
         """
+        # with increasing difficulty, the generation interval decreases (generate more frequently)
         # As difficulty increases, spawn intervals decrease (more frequent obstacles)
         return {
             'rocket': max(200 - self.difficulty_level * 15, 100),  # Rocket spawn interval: 200->100 frames
