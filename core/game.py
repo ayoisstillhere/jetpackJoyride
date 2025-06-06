@@ -170,7 +170,8 @@ class Game:
                     self.game_state = GameStates.START
 
     def _draw_start_screen(self):
-        self.screen.fill(self.bg_color)
+        # Use background system's color
+        self.background_system.draw_background(self.screen, False, 0)
 
         # Title
         title_text = self.title_font.render("AI JETPACK RUNNER", True, 'white')
@@ -220,7 +221,7 @@ class Game:
         self.screen.blit(title_text, title_rect)
 
         # Character selection buttons
-        characters = ["boy", "girl", "cat"]
+        characters = ["boy", "girl", "raccoon"]
         button_width = 120
         button_height = 160
         spacing = 20
