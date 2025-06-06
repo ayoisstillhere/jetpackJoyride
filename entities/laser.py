@@ -7,12 +7,19 @@ class Laser:
     LASER_WIDTH = 200   # Width for horizontal lasers
     LASER_HEIGHT = 200  # Height for vertical lasers
     LASER_THICKNESS = 50  # Thickness of the laser beam
-    
-    def __init__(self):
+
+    def __init__(self, render=True):
         self.points = self._generate()
+        self.render = render
+
         # Load the laser image
-        self.image = pygame.image.load('assets/Zapper1.png').convert_alpha()
-        self.original_image = self.image.copy()  # Keep original for rotation
+        if self.render:
+            # Load the laser image only when rendering is enabled
+            self.image = pygame.image.load('assets/Zapper1.png').convert_alpha()
+            self.original_image = self.image.copy()
+        else:
+            self.image = None
+            self.original_image = None
 
     def _generate(self):
         laser_type = random.randint(0, 1)
@@ -38,13 +45,15 @@ class Laser:
         return self.points[0][1] != self.points[1][1]
 
     def draw(self, screen):
+        if not self.render or not self.image:
+            return
         # Calculate laser properties
         start_x = min(self.points[0][0], self.points[1][0])
         start_y = min(self.points[0][1], self.points[1][1])
-        
+
         # Determine if laser is vertical or horizontal
         is_vertical = self._is_vertical()
-        
+
         if is_vertical:
             scaled_image = pygame.transform.scale(self.original_image, (self.LASER_THICKNESS, self.LASER_HEIGHT))
             collision_rect = pygame.Rect(start_x, start_y, self.LASER_THICKNESS, self.LASER_HEIGHT)
@@ -52,10 +61,10 @@ class Laser:
             rotated_image = pygame.transform.rotate(self.original_image, 90)
             scaled_image = pygame.transform.scale(rotated_image, (self.LASER_WIDTH, self.LASER_THICKNESS))
             collision_rect = pygame.Rect(start_x, start_y, self.LASER_WIDTH, self.LASER_THICKNESS)
-        
+
         # Draw the scaled image
         screen.blit(scaled_image, (start_x, start_y))
-        
+
         # Return collision rectangle
         return collision_rect
 

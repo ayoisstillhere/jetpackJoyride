@@ -3,7 +3,7 @@ import math
 import random
 
 class Portal:
-    def __init__(self, x, y, width=200, height=300):
+    def __init__(self, x, y, width=200, height=300, render=True):
         self.x = x
         self.y = y
         self.width = width
@@ -16,6 +16,7 @@ class Portal:
         self.fade_speed = 2  # Fade-out speed
         self.move_speed = 3  # Portal movement speed
         self.triggered = False  # Whether the teleportation has been triggered
+        self.render = render
 
     def reset(self):
         """Reset portal state"""
@@ -86,7 +87,7 @@ class Portal:
 
     def draw(self, screen):
         """Draw the portal"""
-        if not self.active:
+        if not self.active or not self.render:
             return
 
         # Draw portal base

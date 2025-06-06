@@ -2,7 +2,7 @@ import pygame
 from config.settings import PLAYER_INIT_Y
 
 class Player:
-    def __init__(self, start_x=120, start_y=PLAYER_INIT_Y, character_type="boy"):
+    def __init__(self, start_x=120, start_y=PLAYER_INIT_Y, character_type="boy", render=True):
         self.x = start_x
         self.y = start_y
         self.width = 48
@@ -18,20 +18,30 @@ class Player:
 
         # Load assets based on character type
         # All characters use the same naming convention (1.PNG, 2.PNG, etc.)
-        self.run_frames = [pygame.transform.scale(
-            pygame.image.load(f"assets/{character_type}/run/{i}.PNG").convert_alpha(), (self.width, self.height))
-            for i in range(1, 7)  # Load frames 1 through 6
-        ]
-        self.jump_up_img = pygame.transform.scale(
-            pygame.image.load(f"assets/{character_type}/jump_up.PNG").convert_alpha(), (self.width, self.height)
-        )
-        self.jump_down_img = pygame.transform.scale(
-            pygame.image.load(f"assets/{character_type}/jump_down.PNG").convert_alpha(), (self.width, self.height)
-        )
-
-        self.flame_img = pygame.transform.scale(
-            pygame.image.load("assets/flame.png").convert_alpha(), (20, 30)
-        )
+        if render:
+            self.run_frames = [
+                pygame.transform.scale(
+                    pygame.image.load(f"assets/{character_type}/run/{i}.PNG").convert_alpha(),
+                    (self.width, self.height)
+                )
+                for i in range(1, 7)
+            ]
+            self.jump_up_img = pygame.transform.scale(
+                pygame.image.load(f"assets/{character_type}/jump_up.PNG").convert_alpha(),
+                (self.width, self.height)
+            )
+            self.jump_down_img = pygame.transform.scale(
+                pygame.image.load(f"assets/{character_type}/jump_down.PNG").convert_alpha(),
+                (self.width, self.height)
+            )
+            self.flame_img = pygame.transform.scale(
+                pygame.image.load("assets/flame.png").convert_alpha(), (20, 30)
+            )
+        else:
+            self.run_frames = [None] * 6
+            self.jump_up_img = None
+            self.jump_down_img = None
+            self.flame_img = None
 
     def change_character(self, character_type):
         """Change the character type and reload assets"""

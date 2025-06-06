@@ -8,18 +8,18 @@ class BackgroundSystem:
     def __init__(self, width, height):
         self.WIDTH = width
         self.HEIGHT = height
-        
+
         # scene change related
         self.SCENE_CHANGE_DISTANCE = 2000  # every 2000m, change scene
         self.current_distance = 0  # current distance
         self.background_sequence = ['space', 'another-world', 'land', 'forest', 'mountain']  # scene change sequence
         self.current_sequence_index = 0  # current scene index
-        
+
         # portal related
         self.portal = Portal(WIDTH - 300, HEIGHT//2 - 150)  # create portal on the right side of the screen, slightly left
         self.portal_activation_distance = 200  # show portal 200m before scene change
         self.portal_after_effect_distance = 50  # continue to show portal for 50m after scene change
-        
+
         # theme related
         self.THEME_SPACE = "space"  # space theme
         self.THEME_NATURE = "nature"  # nature theme
@@ -120,7 +120,7 @@ class BackgroundSystem:
         # load space theme parallax background images
         space_folder = os.path.join("backgrounds", "space_background_pack")
         print(f"Checking space background folder: {space_folder}")
-        
+
         # load space layer parallax background images
         if os.path.exists(space_folder):
             layer_files = {
@@ -130,7 +130,7 @@ class BackgroundSystem:
                 'ring_planet': os.path.join('layers', 'parallax-space-ring-planet.png'),
                 'big_planet': os.path.join('layers', 'parallax-space-big-planet.png')
             }
-            
+
             for layer, filename in layer_files.items():
                 file_path = os.path.join(space_folder, filename)
                 print(f"Trying to load file: {file_path}")
@@ -153,7 +153,7 @@ class BackgroundSystem:
                     'sky': 'sky.png',
                     'composed': 'composed-bg.png'
                 }
-                
+
                 for layer, filename in layer_files.items():
                     file_path = os.path.join(another_world_folder, filename)
                     print(f"Trying to load file: {file_path}")
@@ -176,7 +176,7 @@ class BackgroundSystem:
                     'sky': 'sky.png',
                     'back': 'back.png'
                 }
-                
+
                 for layer, filename in layer_files.items():
                     file_path = os.path.join(land_folder, filename)
                     print(f"Trying to load file: {file_path}")
@@ -203,7 +203,7 @@ class BackgroundSystem:
                 'middle_trees': os.path.join('layers', 'parallax-forest-middle-trees.png'),
                 'front_trees': os.path.join('layers', 'parallax-forest-front-trees.png')
             }
-            
+
             for layer, filename in layer_files.items():
                 file_path = os.path.join(forest_folder, filename)
                 print(f"Trying to load file: {file_path}")
@@ -231,7 +231,7 @@ class BackgroundSystem:
                 'trees': os.path.join('layers', 'parallax-mountain-trees.png'),
                 'foreground_trees': os.path.join('layers', 'parallax-mountain-foreground-trees.png')
             }
-            
+
             for layer, filename in layer_files.items():
                 file_path = os.path.join(mountain_folder, filename)
                 print(f"Trying to load file: {file_path}")
@@ -249,10 +249,10 @@ class BackgroundSystem:
             print(f"Mountain background folder not found: {mountain_folder}")
 
         # check if any background was loaded
-        if (not any(self.background_themes[self.THEME_SPACE]['space_layers'].values()) and 
+        if (not any(self.background_themes[self.THEME_SPACE]['space_layers'].values()) and
             not any(self.background_themes[self.THEME_SPACE]['another_world'].values()) and
             not any(self.background_themes[self.THEME_SPACE]['land'].values()) and
-            not any(self.background_themes[self.THEME_NATURE]['forest_layers'].values()) and 
+            not any(self.background_themes[self.THEME_NATURE]['forest_layers'].values()) and
             not any(self.background_themes[self.THEME_NATURE]['mountain_layers'].values())):
             print("Warning: No background images were loaded successfully!")
         else:
@@ -292,7 +292,7 @@ class BackgroundSystem:
     def draw_background(self, screen, pause=False, game_speed=3):
         if pause:
             game_speed = 0
-            
+
         # select layers to draw based on current background type
         current_type = self.current_background_type
         if current_type == 'space':
@@ -305,26 +305,26 @@ class BackgroundSystem:
             layers = self.background_themes[self.THEME_NATURE]['forest_layers']
         elif current_type == 'mountain':
             layers = self.background_themes[self.THEME_NATURE]['mountain_layers']
-        
+
         # draw each layer
         for layer_name, layer_image in layers.items():
             if layer_image is not None:
                 # get layer position
                 x = self.layer_positions[layer_name][0]
                 y = self.layer_positions[layer_name][1]
-                
+
                 # draw main layer
                 screen.blit(layer_image, (x, y))
-                
+
                 # if layer is out of screen, draw a duplicate layer behind
                 if x + layer_image.get_width() < self.WIDTH:
                     screen.blit(layer_image, (x + layer_image.get_width(), y))
-                
+
                 # if not pause, update layer position
                 if not pause:
                     speed = self.parallax_speeds[layer_name] * game_speed
                     self.layer_positions[layer_name][0] -= speed
-                    
+
                     # if layer is completely out of screen, reset position
                     if self.layer_positions[layer_name][0] <= -layer_image.get_width():
                         self.layer_positions[layer_name][0] = 0
@@ -355,12 +355,12 @@ class BackgroundSystem:
         if not pause and distance is not None:
             # update background position
             self.update_layer_positions(game_speed)
-            
+
             # calculate distance to next scene change point
             current_section = int(distance // self.SCENE_CHANGE_DISTANCE)
             next_change_point = (current_section + 1) * self.SCENE_CHANGE_DISTANCE
             distance_to_change = next_change_point - distance
-            
+
             # debug information output
             if int(distance) % 100 == 0:  # print info every 100 meters
                 print(f"Current distance: {distance:.1f}m")
@@ -368,7 +368,7 @@ class BackgroundSystem:
                 print(f"Distance to change: {distance_to_change:.1f}m")
                 print(f"Portal status: {'active' if self.portal.active else 'inactive'}")
                 print(f"Portal trigger status: {'triggered' if self.portal.triggered else 'not triggered'}")
-            
+
             # force close portal conditions
             if distance_to_change > self.portal_activation_distance + 100:  # when far from change point
                 if self.portal.active or self.portal.triggered:  # if portal is still active
@@ -376,7 +376,7 @@ class BackgroundSystem:
                     self.portal.reset()
                     self.portal.x = self.WIDTH - 300
                     self.portal.y = self.HEIGHT//2 - 150
-            
+
             # handle portal appearance
             elif distance_to_change <= self.portal_activation_distance and not self.portal.active:
                 print(f"=== Portal Trigger Condition Check ===")
@@ -384,17 +384,17 @@ class BackgroundSystem:
                 print(f"Current total distance: {distance:.1f}")
                 print(f"Portal current status: {self.portal.active}")
                 print(f"Portal triggered status: {self.portal.triggered}")
-                
+
                 print(f"Portal appears! Remaining distance: {distance_to_change:.1f}m")
                 self.portal.activate()
                 # ensure portal appears from right side
                 self.portal.x = self.WIDTH - 300
                 self.portal.y = self.HEIGHT//2 - 150
-            
+
             # update portal
             if self.portal.active:
                 self.portal.update(game_speed)
-                
+
                 # check if player collides with portal
                 if player_rect and not self.portal.triggered:
                     portal_rect = self.portal.get_rect()
@@ -410,12 +410,12 @@ class BackgroundSystem:
                             self.portal.deactivate()
                             # ensure portal is fully reset
                             self.portal.reset()
-            
+
             self.current_distance = distance
 
     def update_by_distance(self, distance):
         """update background by distance
-        
+
         Args:
             distance (float): current total distance (unit: meter)
         """
@@ -426,7 +426,7 @@ class BackgroundSystem:
             new_background = self.background_sequence[self.current_sequence_index]
             print(f"Switching background to: {new_background}, current distance: {distance}m")
             self.change_background_type(new_background)
-        
+
         self.current_distance = distance
 
     def reset(self):
@@ -435,7 +435,7 @@ class BackgroundSystem:
         self.current_sequence_index = 0
         self.current_background_type = 'space'
         self.current_theme = self.THEME_SPACE
-        
+
         # reset all layer positions
         for layer_name in self.layer_positions:
             self.layer_positions[layer_name] = [0, 0]

@@ -1,5 +1,5 @@
 import pygame
-import random
+import random, os
 
 from ai import RuleBasedAgent
 from config.settings import WIDTH, HEIGHT, FPS, BG_COLOR, FONT_PATH
@@ -22,12 +22,16 @@ class GameStates:
     CHARACTER_SELECT = "character_select"
 
 class Game:
-    def __init__(self):
+    def __init__(self, render=True):
         pygame.init()
+        self.render = render
 
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        if self.render:
+            self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+            pygame.display.set_caption("AI Jetpack Runner")
+        else:
+            self.screen = None
         self.surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        pygame.display.set_caption("AI Jetpack Runner")
 
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(FONT_PATH, 32)
@@ -43,9 +47,9 @@ class Game:
         self.difficulty_system = DifficultySystem()
 
         # Game elements
-        self.player = Player()
-        self.rocket = Rocket()
-        self.laser = Laser()
+        self.player = Player(render=self.render)
+        self.rocket = Rocket(render=self.render)
+        self.laser = Laser(render=self.render)
         self.lines = [0, WIDTH/4, WIDTH/2, 3*WIDTH/4]
         self.bg_color = BG_COLOR
 
@@ -106,16 +110,17 @@ class Game:
                 self._handle_game_over_events(events)
 
             # === Draw ===
-            if self.game_state == GameStates.START:
-                self._draw_start_screen()
-            elif self.game_state == GameStates.CHARACTER_SELECT:
-                self._draw_character_select_screen()
-            elif self.game_state == GameStates.GAME_OVER:
-                self._draw_game_over_screen()
-            else:
-                self._draw_game_screen()
+            if self.render:
+                if self.game_state == GameStates.START:
+                    self._draw_start_screen()
+                elif self.game_state == GameStates.CHARACTER_SELECT:
+                    self._draw_character_select_screen()
+                elif self.game_state == GameStates.GAME_OVER:
+                    self._draw_game_over_screen()
+                else:
+                    self._draw_game_screen()
 
-            pygame.display.flip()
+                pygame.display.flip()
 
         pygame.quit()
 
