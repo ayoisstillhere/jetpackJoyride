@@ -3,28 +3,28 @@ class DifficultySystem:
         self.reset()
         
     def reset(self):
-        """重置难度系统"""
+        """reset difficulty system"""
         self.difficulty_level = 1
-        self.game_speed = 3  # 初始速度
-        self.last_distance = 0  # 上次更新难度的距离
-        self.distance_per_level = 500  # 每500米提升一次难度
+        self.game_speed = 2  # initial speed
+        self.last_distance = 0  # last update difficulty distance
+        self.distance_per_level = 500  # every 500m, update difficulty
         
     def update(self, current_distance):
-        """根据当前距离更新难度
+        """according to the current distance, update difficulty
         
         Args:
-            current_distance (float): 当前行进距离
+            current_distance (float): current distance
             
         Returns:
-            bool: 难度是否发生变化
+            bool: difficulty changed
         """
-        # 更新游戏速度（更快的速度增长）
+        # update game speed (faster speed growth)
         if current_distance < 50000:
-            self.game_speed = 3 + (current_distance // 500) / 5  # 每500米增加0.2的速度
+            self.game_speed = 3 + (current_distance // 500) / 5  # every 500m, increase 0.2 speed
         else:
-            self.game_speed = 13  # 最大速度
+            self.game_speed = 13  # max speed
             
-        # 计算新的难度等级
+        # calculate new difficulty level
         new_level = int(current_distance // self.distance_per_level) + 1
         if new_level != self.difficulty_level:
             self.difficulty_level = new_level
@@ -32,27 +32,27 @@ class DifficultySystem:
             return True
         return False
         
-    def get_current_theme(self):
-        """根据当前难度等级返回对应的主题"""
-        if self.difficulty_level <= 3:
-            return "space"
-        elif self.difficulty_level <= 6:
-            return "another-world"
-        elif self.difficulty_level <= 9:
-            return "land"
-        elif self.difficulty_level <= 12:
-            return "forest"
-        else:
-            return "mountain"
+    # def get_current_theme(self):
+    #     """根据当前难度等级返回对应的主题"""
+    #     if self.difficulty_level <= 3:
+    #         return "space"
+    #     elif self.difficulty_level <= 6:
+    #         return "another-world"
+    #     elif self.difficulty_level <= 9:
+    #         return "land"
+    #     elif self.difficulty_level <= 12:
+    #         return "forest"
+    #     else:
+    #         return "mountain"
             
     def get_obstacle_frequency(self):
-        """返回当前难度下的障碍物生成频率
+        """return the obstacle generation frequency of the current difficulty
         
         Returns:
-            dict: 包含各种障碍物的生成间隔（帧数）
+            dict: contains the generation interval of various obstacles (frames)
         """
-        # 随难度提升，生成间隔减少（生成更频繁）
+        # with increasing difficulty, the generation interval decreases (generate more frequently)
         return {
-            'rocket': max(200 - self.difficulty_level * 15, 100),  # 火箭生成间隔：200->100帧
-            'laser': max(300 - self.difficulty_level * 20, 120)    # 激光生成间隔：300->120帧
+            'rocket': max(200 - self.difficulty_level * 15, 100),  # rocket generation interval: 200->100 frames
+            'laser': max(300 - self.difficulty_level * 20, 120)    # laser generation interval: 300->120 frames
         } 
