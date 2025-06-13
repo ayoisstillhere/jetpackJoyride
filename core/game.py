@@ -432,7 +432,7 @@ class Game:
             spawn_coins(self.coins)
             self.last_coin_spawn = self.state.distance
 
-            update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self.difficulty_system.game_speed)
+        update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self.difficulty_system.game_speed)
 
         # Rocket
         if not self.rocket.active:
