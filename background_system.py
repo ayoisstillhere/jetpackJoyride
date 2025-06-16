@@ -9,251 +9,144 @@ class BackgroundSystem:
         self.WIDTH = width
         self.HEIGHT = height
 
-        # scene change related
-        self.SCENE_CHANGE_DISTANCE = 2000  # every 2000m, change scene
-        self.current_distance = 0  # current distance
-        self.background_sequence = ['space', 'another-world', 'land', 'forest', 'mountain']  # scene change sequence
-        self.current_sequence_index = 0  # current scene index
+        # Scene configuration
+        self.SCENE_CHANGE_DISTANCE = 2000
+        self.current_distance = 0
+        self.background_sequence = ['space', 'another-world', 'land', 'forest', 'mountain']
+        self.current_sequence_index = 0
 
-        # portal related
-        self.portal = Portal(WIDTH - 300, HEIGHT//2 - 150)  # create portal on the right side of the screen, slightly left
-        self.portal_activation_distance = 200  # show portal 200m before scene change
-        self.portal_after_effect_distance = 50  # continue to show portal for 50m after scene change
+        # Portal configuration
+        self.portal = Portal(WIDTH - 300, HEIGHT//2 - 150)
+        self.portal_activation_distance = 200
+        self.portal_after_effect_distance = 50
 
-        # theme related
-        self.THEME_SPACE = "space"  # space theme
-        self.THEME_NATURE = "nature"  # nature theme
+        # Theme configuration
+        self.THEME_SPACE = "space"
+        self.THEME_NATURE = "nature"
         self.current_theme = self.THEME_SPACE
-        self.background_themes = {
-            self.THEME_SPACE: {
-                'space_layers': {  # space layer
-                    'background': None,
-                    'stars': None,
-                    'far_planets': None,
-                    'ring_planet': None,
-                    'big_planet': None
-                },
-                'another_world': {  # another-world layer
-                    'sky': None,
-                    'composed': None
-                },
-                'land': {  # land layer
-                    'sky': None,
-                    'back': None
-                }
-            },
-            self.THEME_NATURE: {
-                'forest_layers': {  # forest layer
-                    'back_trees': None,
-                    'lights': None,
-                    'middle_trees': None,
-                    'front_trees': None
-                },
-                'mountain_layers': {  # mountain layer
-                    'sky': None,
-                    'mountains': None,
-                    'far_mountains': None,
-                    'trees': None,
-                    'foreground_trees': None
-                }
-            }
-        }
-
-        # parallax scrolling speed
-        self.parallax_speeds = {
-            # space layer speed
-            'background': 0.2,
-            'stars': 0.3,
-            'far_planets': 0.4,
-            'ring_planet': 0.6,
-            'big_planet': 0.8,
-            # another-world layer speed
-            'sky': 0.2,
-            'composed': 0.4,
-            # land layer speed
-            'back': 0.4,
-            # forest layer speed
-            'back_trees': 0.2,
-            'lights': 0.3,
-            'middle_trees': 0.6,
-            'front_trees': 0.8,
-            # mountain layer speed
-            'far_mountains': 0.3,
-            'mountains': 0.4,
-            'trees': 0.6,
-            'foreground_trees': 0.8
-        }
-
-        # layer positions
-        self.layer_positions = {
-            # space layer positions
-            'background': [0, 0],
-            'stars': [0, 0],
-            'far_planets': [0, 0],
-            'ring_planet': [0, 0],
-            'big_planet': [0, 0],
-            # another-world layer positions
-            'sky': [0, 0],
-            'composed': [0, 0],
-            # land layer positions
-            'back': [0, 0],
-            # forest layer positions
-            'back_trees': [0, 0],
-            'lights': [0, 0],
-            'middle_trees': [0, 0],
-            'front_trees': [0, 0],
-            # mountain layer positions
-            'far_mountains': [0, 0],
-            'mountains': [0, 0],
-            'trees': [0, 0],
-            'foreground_trees': [0, 0]
-        }
-
-        # current used background type
-        self.current_background_type = 'space'  # optional values: 'space', 'another-world', 'land', 'forest', 'mountain'
-
-        # load background images
+        
+        # Initialize theme structure
+        self.background_themes = self._initialize_theme_structure()
+        
+        # Initialize layer configurations
+        self.parallax_speeds = self._initialize_parallax_speeds()
+        self.layer_positions = self._initialize_layer_positions()
+        
+        # Current background state
+        self.current_background_type = 'space'
+        
+        # Load background images
         self.load_background_images()
 
+    def _initialize_theme_structure(self):
+        """Initialize the theme structure with empty layers"""
+        return {
+            self.THEME_SPACE: {
+                'space_layers': {layer: None for layer in ['background', 'stars', 'far_planets', 'ring_planet', 'big_planet']},
+                'another_world': {layer: None for layer in ['sky', 'composed']},
+                'land': {layer: None for layer in ['sky', 'back']}
+            },
+            self.THEME_NATURE: {
+                'forest_layers': {layer: None for layer in ['back_trees', 'lights', 'middle_trees', 'front_trees']},
+                'mountain_layers': {layer: None for layer in ['sky', 'mountains', 'far_mountains', 'trees', 'foreground_trees']}
+            }
+        }
+
+    def _initialize_parallax_speeds(self):
+        """Initialize parallax scrolling speeds for all layers"""
+        return {
+            # Space theme speeds
+            'background': 0.2, 'stars': 0.3, 'far_planets': 0.4,
+            'ring_planet': 0.6, 'big_planet': 0.8,
+            # Another-world theme speeds
+            'sky': 0.2, 'composed': 0.4,
+            # Land theme speeds
+            'back': 0.4,
+            # Forest theme speeds
+            'back_trees': 0.2, 'lights': 0.3,
+            'middle_trees': 0.6, 'front_trees': 0.8,
+            # Mountain theme speeds
+            'far_mountains': 0.3, 'mountains': 0.4,
+            'trees': 0.6, 'foreground_trees': 0.8
+        }
+
+    def _initialize_layer_positions(self):
+        """Initialize positions for all layers"""
+        return {layer: [0, 0] for layer in self.parallax_speeds.keys()}
+
+    def _load_theme_images(self, theme_folder, layer_files, theme_key, layer_dict):
+        """Load images for a specific theme and its layers"""
+        if not os.path.exists(theme_folder):
+            print(f"Theme folder not found: {theme_folder}")
+            return
+
+        for layer, filename in layer_files.items():
+            file_path = os.path.join(theme_folder, filename)
+            if os.path.exists(file_path):
+                try:
+                    img = pygame.image.load(file_path).convert_alpha()
+                    img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
+                    self.background_themes[theme_key][layer_dict][layer] = img
+                    print(f"Successfully loaded {layer} layer: {filename}")
+                except pygame.error as e:
+                    print(f"Failed to load image {file_path}: {e}")
+            else:
+                print(f"Missing layer file: {file_path}")
+
     def load_background_images(self):
+        """Load all background images for different themes"""
         print("Start loading background images...")
-        # load space theme parallax background images
+        
+        # Load space theme
         space_folder = os.path.join("backgrounds", "space_background_pack")
-        print(f"Checking space background folder: {space_folder}")
+        space_layers = {
+            'background': os.path.join('layers', 'parallax-space-background.png'),
+            'stars': os.path.join('layers', 'parallax-space-stars.png'),
+            'far_planets': os.path.join('layers', 'parallax-space-far-planets.png'),
+            'ring_planet': os.path.join('layers', 'parallax-space-ring-planet.png'),
+            'big_planet': os.path.join('layers', 'parallax-space-big-planet.png')
+        }
+        self._load_theme_images(space_folder, space_layers, self.THEME_SPACE, 'space_layers')
 
-        # load space layer parallax background images
-        if os.path.exists(space_folder):
-            layer_files = {
-                'background': os.path.join('layers', 'parallax-space-background.png'),  # fix spelling error
-                'stars': os.path.join('layers', 'parallax-space-stars.png'),
-                'far_planets': os.path.join('layers', 'parallax-space-far-planets.png'),
-                'ring_planet': os.path.join('layers', 'parallax-space-ring-planet.png'),
-                'big_planet': os.path.join('layers', 'parallax-space-big-planet.png')
-            }
+        # Load another-world theme
+        another_world_folder = os.path.join(space_folder, 'another-world')
+        another_world_layers = {
+            'sky': 'sky.png',
+            'composed': 'composed-bg.png'
+        }
+        self._load_theme_images(another_world_folder, another_world_layers, self.THEME_SPACE, 'another_world')
 
-            for layer, filename in layer_files.items():
-                file_path = os.path.join(space_folder, filename)
-                print(f"Trying to load file: {file_path}")
-                if os.path.exists(file_path):
-                    try:
-                        img = pygame.image.load(file_path).convert_alpha()
-                        img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
-                        self.background_themes[self.THEME_SPACE]['space_layers'][layer] = img
-                        print(f"Successfully loaded space {layer} layer: {filename}")
-                    except pygame.error as e:
-                        print(f"Failed to load image {file_path}: {e}")
-                else:
-                    print(f"Missing space layer file: {file_path}")
+        # Load land theme
+        land_folder = os.path.join(space_folder, 'land')
+        land_layers = {
+            'sky': 'sky.png',
+            'back': 'back.png'
+        }
+        self._load_theme_images(land_folder, land_layers, self.THEME_SPACE, 'land')
 
-            # load another-world layer
-            another_world_folder = os.path.join(space_folder, 'another-world')
-            print(f"Checking another-world folder: {another_world_folder}")
-            if os.path.exists(another_world_folder):
-                layer_files = {
-                    'sky': 'sky.png',
-                    'composed': 'composed-bg.png'
-                }
-
-                for layer, filename in layer_files.items():
-                    file_path = os.path.join(another_world_folder, filename)
-                    print(f"Trying to load file: {file_path}")
-                    if os.path.exists(file_path):
-                        try:
-                            img = pygame.image.load(file_path).convert_alpha()
-                            img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
-                            self.background_themes[self.THEME_SPACE]['another_world'][layer] = img
-                            print(f"Successfully loaded another-world {layer} layer: {filename}")
-                        except pygame.error as e:
-                            print(f"Failed to load image {file_path}: {e}")
-                    else:
-                        print(f"Missing another-world layer file: {file_path}")
-
-            # load land layer
-            land_folder = os.path.join(space_folder, 'land')
-            print(f"Checking land folder: {land_folder}")
-            if os.path.exists(land_folder):
-                layer_files = {
-                    'sky': 'sky.png',
-                    'back': 'back.png'
-                }
-
-                for layer, filename in layer_files.items():
-                    file_path = os.path.join(land_folder, filename)
-                    print(f"Trying to load file: {file_path}")
-                    if os.path.exists(file_path):
-                        try:
-                            img = pygame.image.load(file_path).convert_alpha()
-                            img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
-                            self.background_themes[self.THEME_SPACE]['land'][layer] = img
-                            print(f"Successfully loaded land {layer} layer: {filename}")
-                        except pygame.error as e:
-                            print(f"Failed to load image {file_path}: {e}")
-                    else:
-                        print(f"Missing land layer file: {file_path}")
-        else:
-            print(f"Space background folder not found: {space_folder}")
-
-        # load forest theme parallax background
+        # Load forest theme
         forest_folder = os.path.join("backgrounds", "parallax_forest_pack")
-        print(f"Checking forest background folder: {forest_folder}")
-        if os.path.exists(forest_folder):
-            layer_files = {
-                'back_trees': os.path.join('layers', 'parallax-forest-back-trees.png'),
-                'lights': os.path.join('layers', 'parallax-forest-lights.png'),
-                'middle_trees': os.path.join('layers', 'parallax-forest-middle-trees.png'),
-                'front_trees': os.path.join('layers', 'parallax-forest-front-trees.png')
-            }
+        forest_layers = {
+            'back_trees': os.path.join('layers', 'parallax-forest-back-trees.png'),
+            'lights': os.path.join('layers', 'parallax-forest-lights.png'),
+            'middle_trees': os.path.join('layers', 'parallax-forest-middle-trees.png'),
+            'front_trees': os.path.join('layers', 'parallax-forest-front-trees.png')
+        }
+        self._load_theme_images(forest_folder, forest_layers, self.THEME_NATURE, 'forest_layers')
 
-            for layer, filename in layer_files.items():
-                file_path = os.path.join(forest_folder, filename)
-                print(f"Trying to load file: {file_path}")
-                if os.path.exists(file_path):
-                    try:
-                        img = pygame.image.load(file_path).convert_alpha()
-                        img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
-                        self.background_themes[self.THEME_NATURE]['forest_layers'][layer] = img
-                        print(f"Successfully loaded forest {layer} layer: {filename}")
-                    except pygame.error as e:
-                        print(f"Failed to load image {file_path}: {e}")
-                else:
-                    print(f"Missing forest layer file: {file_path}")
-        else:
-            print(f"Forest background folder not found: {forest_folder}")
-
-        # load mountain theme parallax background
+        # Load mountain theme
         mountain_folder = os.path.join("backgrounds", "parallax_mountain_pack")
-        print(f"Checking mountain background folder: {mountain_folder}")
-        if os.path.exists(mountain_folder):
-            layer_files = {
-                'sky': os.path.join('layers', 'parallax-mountain-bg.png'),
-                'mountains': os.path.join('layers', 'parallax-mountain-mountains.png'),
-                'far_mountains': os.path.join('layers', 'parallax-mountain-montain-far.png'),
-                'trees': os.path.join('layers', 'parallax-mountain-trees.png'),
-                'foreground_trees': os.path.join('layers', 'parallax-mountain-foreground-trees.png')
-            }
+        mountain_layers = {
+            'sky': os.path.join('layers', 'parallax-mountain-bg.png'),
+            'mountains': os.path.join('layers', 'parallax-mountain-mountains.png'),
+            'far_mountains': os.path.join('layers', 'parallax-mountain-montain-far.png'),
+            'trees': os.path.join('layers', 'parallax-mountain-trees.png'),
+            'foreground_trees': os.path.join('layers', 'parallax-mountain-foreground-trees.png')
+        }
+        self._load_theme_images(mountain_folder, mountain_layers, self.THEME_NATURE, 'mountain_layers')
 
-            for layer, filename in layer_files.items():
-                file_path = os.path.join(mountain_folder, filename)
-                print(f"Trying to load file: {file_path}")
-                if os.path.exists(file_path):
-                    try:
-                        img = pygame.image.load(file_path).convert_alpha()
-                        img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
-                        self.background_themes[self.THEME_NATURE]['mountain_layers'][layer] = img
-                        print(f"Successfully loaded mountain {layer} layer: {filename}")
-                    except pygame.error as e:
-                        print(f"Failed to load image {file_path}: {e}")
-                else:
-                    print(f"Missing mountain layer file: {file_path}")
-        else:
-            print(f"Mountain background folder not found: {mountain_folder}")
-
-        # check if any background was loaded
-        if (not any(self.background_themes[self.THEME_SPACE]['space_layers'].values()) and
-            not any(self.background_themes[self.THEME_SPACE]['another_world'].values()) and
-            not any(self.background_themes[self.THEME_SPACE]['land'].values()) and
-            not any(self.background_themes[self.THEME_NATURE]['forest_layers'].values()) and
-            not any(self.background_themes[self.THEME_NATURE]['mountain_layers'].values())):
+        # Verify loading success
+        if not any(any(layers.values()) for theme in self.background_themes.values() for layers in theme.values()):
             print("Warning: No background images were loaded successfully!")
         else:
             print("Background loading completed!")
