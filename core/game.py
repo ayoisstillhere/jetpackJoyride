@@ -451,6 +451,9 @@ class Game:
         apply_gravity(self.player)
         self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
         update_vertical_position(self.player, self.top_hit, self.bot_hit)
+        
+        # Update player position (including horizontal movement)
+        self.player.update_position(self.top_hit, self.bot_hit)
 
         # Collision
         rocket_rect = self.rocket.get_hitbox()
@@ -463,6 +466,19 @@ class Game:
         # Background color variation
         if self.state.distance % 500 == 0:
             self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+            
+        # Projectile logic
+        for projectile in self.state.projectiles[:]:
+            projectile.update()
+            if not projectile.active:
+                self.state.projectiles.remove(projectile)
+            else:
+                # Check if rocket is active and has a valid hitbox before collision detection
+                rocket_hitbox = self.rocket.get_hitbox()
+                if self.rocket.active and rocket_hitbox is not None and projectile.collides_with(self.rocket):
+                    self.rocket.active = False  # Or handle as needed
+                    projectile.active = False
+                    self.state.projectiles.remove(projectile)
 
     def _trigger_game_over(self):
         self.state.save_player_data()
@@ -474,6 +490,8 @@ class Game:
         draw_coin_counter(self.screen, self.font, self.state.coin_count)
         self.player.draw(self.screen, self.state.paused)
         self.rocket.draw(self.screen, self.font)
+        for projectile in self.state.projectiles:
+            projectile.draw(self.screen)
 
     def _draw_pause_menu(self):
         pygame.draw.rect(self.surface, (128, 128, 128, 150), [0, 0, WIDTH, HEIGHT])
