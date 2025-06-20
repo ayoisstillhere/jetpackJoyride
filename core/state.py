@@ -12,6 +12,7 @@ class GameState:
         self.lifetime_distance = 0
 
         self.coin_count = 0
+        self.projectiles = []
 
         self._load_player_data()
 
