@@ -1,6 +1,6 @@
 import pygame
 import time
-from config.settings import PLAYER_INIT_Y
+from config.settings import PLAYER_INIT_Y, WIDTH
 from entities.projectiles import Projectile
 
 class Player:
@@ -110,11 +110,11 @@ class Player:
             self.velocity_y = 0
         self.y += self.velocity_y
         
-        # Handle horizontal movement
+        # Handle horizontal movement with boundary checks
         if self.move_left:
-            self.x -= self.horizontal_speed
+            self.x = max(0, self.x - self.horizontal_speed)
         if self.move_right:
-            self.x += self.horizontal_speed
+            self.x = min(WIDTH - self.width, self.x + self.horizontal_speed)
 
     def reset(self):
         self.y = PLAYER_INIT_Y
