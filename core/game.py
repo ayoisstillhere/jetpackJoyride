@@ -5,12 +5,14 @@ from ai import RuleBasedAgent
 from config.settings import WIDTH, HEIGHT, FPS, BG_COLOR, FONT_PATH
 from core.state import GameState
 from core.events import handle_events
+from systems.meteor_system import MeteorSystem
 from systems.ui import draw_screen
 from systems.physics import apply_gravity, update_vertical_position, check_platform_collisions
 from entities.player import Player
 from entities.rocket import Rocket
 from entities.laser import Laser
 from entities.coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
+from entities.meteor import Meteor
 from background_system import BackgroundSystem
 from difficulty_system import DifficultySystem
 
@@ -61,6 +63,9 @@ class Game:
         self.coins = []
         self.last_coin_spawn = 0
         self.coin_spawn_distance = 400
+        
+        # Meteor system
+        self.meteor_system = MeteorSystem()
 
         # UI buttons
         self.start_button = None
@@ -386,6 +391,7 @@ class Game:
         self.rocket.reset()
         self.laser.reset()
         self.coins = []
+        self.meteor_system.clear_meteors()
 
         # Reset systems
         self.difficulty_system.reset()
@@ -410,6 +416,9 @@ class Game:
 
             # Animation + Distance
             self.player.update_animation()
+            
+            # meteor updates
+            self._update_meteors()
 
         # === AI Decision ===
         if self.player.controlled_by_ai:
@@ -451,6 +460,9 @@ class Game:
         apply_gravity(self.player)
         self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
         update_vertical_position(self.player, self.top_hit, self.bot_hit)
+        
+        # Update player position (including horizontal movement)
+        self.player.update_position(self.top_hit, self.bot_hit)
 
         # Collision
         rocket_rect = self.rocket.get_hitbox()
@@ -459,10 +471,26 @@ class Game:
 
         if self.laser_rect.colliderect(self.player.get_hitbox()):
             self._trigger_game_over()
+        
+        # Meteor Collision Checks    
+        self._check_meteor_collisions()
 
         # Background color variation
         if self.state.distance % 500 == 0:
             self.bg_color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+            
+        # Projectile logic
+        for projectile in self.state.projectiles[:]:
+            projectile.update()
+            if not projectile.active:
+                self.state.projectiles.remove(projectile)
+            else:
+                # Check if rocket is active and has a valid hitbox before collision detection
+                rocket_hitbox = self.rocket.get_hitbox()
+                if self.rocket.active and rocket_hitbox is not None and projectile.collides_with(self.rocket):
+                    self.rocket.active = False  # Or handle as needed
+                    projectile.active = False
+                    self.state.projectiles.remove(projectile)
 
     def _trigger_game_over(self):
         self.state.save_player_data()
@@ -474,6 +502,9 @@ class Game:
         draw_coin_counter(self.screen, self.font, self.state.coin_count)
         self.player.draw(self.screen, self.state.paused)
         self.rocket.draw(self.screen, self.font)
+        for projectile in self.state.projectiles:
+            projectile.draw(self.screen)
+        self.meteor_system.draw_meteors(self.screen)
 
     def _draw_pause_menu(self):
         pygame.draw.rect(self.surface, (128, 128, 128, 150), [0, 0, WIDTH, HEIGHT])
@@ -500,3 +531,20 @@ class Game:
     def _get_speed(self):
         """Retrieve current game speed (retained for compatibility with other possible calls)"""
         return self.difficulty_system.game_speed
+    
+    def _update_meteors(self):
+        """Update meteor system"""
+        if not self.state.paused:
+            self.meteor_system.update_difficulty(self.state.distance)
+            self.meteor_system.spawn_meteor()
+            self.meteor_system.update_meteors(self.state.paused, self.difficulty_system.game_speed)
+    
+    def _check_meteor_collisions(self):
+        """Check meteor collisions with player"""
+        colliding_meteor = self.meteor_system.check_collisions(self.player.get_hitbox())
+        
+        if colliding_meteor:
+            self._trigger_game_over()
+            return True
+        return False
+            

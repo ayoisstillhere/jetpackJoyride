@@ -1,5 +1,7 @@
 import pygame
-from config.settings import PLAYER_INIT_Y
+import time
+from config.settings import PLAYER_INIT_Y, WIDTH
+from entities.projectiles import Projectile
 
 class Player:
     def __init__(self, start_x=120, start_y=PLAYER_INIT_Y, character_type="boy", render=True):
@@ -15,6 +17,12 @@ class Player:
         self.booster_duration = 0  # holding the space bar to jump
         self.max_booster_duration = 5
         self.character_type = character_type
+        self.move_left = False
+        self.move_right = False
+        self.horizontal_speed = 5
+        self.can_shoot = True
+        self.shoot_cooldown = 0.5  # 0.5 seconds cooldown
+        self.last_shot_time = 0
 
         # Load assets based on character type
         # All characters use the same naming convention (1.PNG, 2.PNG, etc.)
@@ -42,6 +50,13 @@ class Player:
             self.jump_up_img = None
             self.jump_down_img = None
             self.flame_img = None
+            
+    def shoot(self):
+        current_time = time.time()
+        if self.can_shoot and current_time - self.last_shot_time > self.shoot_cooldown:
+            self.last_shot_time = current_time
+            return Projectile(self.x, self.y)  # Adjust starting position as needed
+        return None
 
     def change_character(self, character_type):
         """Change the character type and reload assets"""
@@ -90,9 +105,16 @@ class Player:
         self.counter = (self.counter + 1) % (6 * len(self.run_frames))
 
     def update_position(self, colliding_top, colliding_bottom):
+        # Handle vertical collisions and update vertical velocity
         if (colliding_bottom and self.velocity_y > 0) or (colliding_top and self.velocity_y < 0):
             self.velocity_y = 0
         self.y += self.velocity_y
+        
+        # Handle horizontal movement with boundary checks
+        if self.move_left:
+            self.x = max(0, self.x - self.horizontal_speed)
+        if self.move_right:
+            self.x = min(WIDTH - self.width, self.x + self.horizontal_speed)
 
     def reset(self):
         self.y = PLAYER_INIT_Y
@@ -100,3 +122,5 @@ class Player:
         self.counter = 0
         self.booster = False
         self.booster_duration = 0
+        self.move_left = False
+        self.move_right = False
