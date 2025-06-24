@@ -122,3 +122,5 @@ class Player:
         self.counter = 0
         self.booster = False
         self.booster_duration = 0
+        self.move_left = False
+        self.move_right = False
