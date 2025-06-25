@@ -9,7 +9,7 @@ class Meteor:
         self.y = y if y is not None else -50  # Start above screen
 
         # Physics
-        self.fall_speed = random.uniform(3, 6)  # Variable falling speed
+        self.fall_speed = random.uniform(2, 4)  # Variable falling speed
         self.rotation = 0
         self.rotation_speed = random.uniform(-5, 5)  # Rotation for tumbling effect
 
