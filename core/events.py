@@ -20,38 +20,44 @@ def handle_events(state, player, restart_button=None, quit_button=None, events=N
             if event.key == pygame.K_ESCAPE:
                 state.paused = not state.paused
 
-            if event.key == pygame.K_SPACE and not state.paused and not getattr(player, 'controlled_by_ai', False):
+            if event.key == pygame.K_w and not state.paused and not getattr(player, 'controlled_by_ai', False):
                 player.booster = True
 
             if event.key == pygame.K_t:
                 player.controlled_by_ai = not getattr(player, 'controlled_by_ai', False)
                 print(f"[HUD] AI mode {'ON' if player.controlled_by_ai else 'OFF'}")
-                
-            if event.key == pygame.K_LEFT and not state.paused and not getattr(player, 'controlled_by_ai', False):
+
+            if event.key == pygame.K_a and not state.paused and not getattr(player, 'controlled_by_ai', False):
                 player.move_left = True
-            
-            if event.key == pygame.K_RIGHT and not state.paused and not getattr(player, 'controlled_by_ai', False):
+
+            if event.key == pygame.K_d and not state.paused and not getattr(player, 'controlled_by_ai', False):
                 player.move_right = True
-            if event.key == pygame.K_s and not state.paused and not getattr(player, 'controlled_by_ai', False):
+            # if event.key == pygame.K_s and not state.paused and not getattr(player, 'controlled_by_ai', False):
+            #     projectile = player.shoot()
+            #     if projectile:
+            #         # Add the projectile to a list of projectiles in the game state
+                    # state.projectiles.append(projectile)
+
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_w and not getattr(player, 'controlled_by_ai', False):
+                player.booster = False
+            if event.key == pygame.K_a and not getattr(player, 'controlled_by_ai', False):
+                player.move_left = False
+            if event.key == pygame.K_d and not getattr(player, 'controlled_by_ai', False):
+                player.move_right = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if state.paused:
+                if restart_button and restart_button.collidepoint(event.pos):
+                    state.restart_requested = True
+                if quit_button and quit_button.collidepoint(event.pos):
+                    state.save_player_data()
+                    return True
+            elif not state.paused and not getattr(player, 'controlled_by_ai', False) and event.button == 1:
                 projectile = player.shoot()
                 if projectile:
                     # Add the projectile to a list of projectiles in the game state
                     state.projectiles.append(projectile)
 
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_SPACE and not getattr(player, 'controlled_by_ai', False):
-                player.booster = False
-            
-            if event.key == pygame.K_LEFT and not getattr(player, 'controlled_by_ai', False):
-                player.move_left = False
-            if event.key == pygame.K_RIGHT and not getattr(player, 'controlled_by_ai', False):
-                player.move_right = False
-
-        if event.type == pygame.MOUSEBUTTONDOWN and state.paused:
-            if restart_button and restart_button.collidepoint(event.pos):
-                state.restart_requested = True
-            if quit_button and quit_button.collidepoint(event.pos):
-                state.save_player_data()
-                return True
 
     return False

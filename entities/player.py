@@ -50,7 +50,7 @@ class Player:
             self.jump_up_img = None
             self.jump_down_img = None
             self.flame_img = None
-            
+
     def shoot(self):
         current_time = time.time()
         if self.can_shoot and current_time - self.last_shot_time > self.shoot_cooldown:
@@ -109,7 +109,7 @@ class Player:
         if (colliding_bottom and self.velocity_y > 0) or (colliding_top and self.velocity_y < 0):
             self.velocity_y = 0
         self.y += self.velocity_y
-        
+
         # Handle horizontal movement with boundary checks
         if self.move_left:
             self.x = max(0, self.x - self.horizontal_speed)

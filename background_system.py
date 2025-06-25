@@ -24,17 +24,17 @@ class BackgroundSystem:
         self.THEME_SPACE = "space"
         self.THEME_NATURE = "nature"
         self.current_theme = self.THEME_SPACE
-        
+
         # Initialize theme structure
         self.background_themes = self._initialize_theme_structure()
-        
+
         # Initialize layer configurations
         self.parallax_speeds = self._initialize_parallax_speeds()
         self.layer_positions = self._initialize_layer_positions()
-        
+
         # Current background state
         self.current_background_type = 'space'
-        
+
         # Load background images
         self.load_background_images()
 
@@ -96,7 +96,7 @@ class BackgroundSystem:
     def load_background_images(self):
         """Load all background images for different themes"""
         print("Start loading background images...")
-        
+
         # Load space theme
         space_folder = os.path.join("backgrounds", "space_background_pack")
         space_layers = {
@@ -332,8 +332,8 @@ class BackgroundSystem:
         # reset all layer positions
         for layer_name in self.layer_positions:
             self.layer_positions[layer_name] = [0, 0]
-            
+
         # reset portal
         self.portal.reset()  # use Portal class's reset method
         self.portal.x = self.WIDTH - 300  # reset portal position to initial position
-        self.portal.y = self.HEIGHT//2 - 150 
+        self.portal.y = self.HEIGHT//2 - 150

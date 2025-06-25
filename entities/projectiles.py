@@ -18,13 +18,13 @@ class Projectile:
     def draw(self, surface):
         if self.active:
             pygame.draw.rect(surface, (255, 0, 0), pygame.Rect(self.x, self.y, 10, 5))  # simple red rectangle as a projectile
-            
+
 
     def collides_with(self, other):
         # Ensure that self.x and self.y are numeric
         assert isinstance(self.x, (int, float)), f"self.x is not numeric: {self.x}"
         assert isinstance(self.y, (int, float)), f"self.y is not numeric: {self.y}"
-        
+
         projectile_rect = pygame.Rect(self.x, self.y, 10, 5)  # Ensure that these dimensions are correct
         other_rect = other.get_hitbox()
 
