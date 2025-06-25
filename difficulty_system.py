@@ -1,7 +1,7 @@
 class DifficultySystem:
     def __init__(self, initial_speed=1, distance_per_level=500, max_speed=13):
         """Initialize difficulty system with configurable parameters
-        
+
         Args:
             initial_speed (float): Initial game speed
             distance_per_level (int): Distance required to increase difficulty level
@@ -53,7 +53,7 @@ class DifficultySystem:
             (10, 12): "forest",
             (13, float('inf')): "mountain"
         }
-        
+
         for (min_level, max_level), theme in themes.items():
             if min_level <= self.difficulty_level <= max_level:
                 return theme
@@ -69,12 +69,12 @@ class DifficultySystem:
             'rocket': 200,
             'laser': 300
         }
-        
+
         min_intervals = {
             'rocket': 100,
             'laser': 120
         }
-        
+
         return {
             obstacle: max(
                 base - self.difficulty_level * (15 if obstacle == 'rocket' else 20),
