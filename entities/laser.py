@@ -40,6 +40,16 @@ class Laser:
     def is_offscreen(self):
         return self.points[0][0] < 0 and self.points[1][0] < 0
 
+    def get_hitbox(self):
+        start_x = min(self.points[0][0], self.points[1][0])
+        start_y = min(self.points[0][1], self.points[1][1])
+
+        if self._is_vertical():
+            return pygame.Rect(start_x, start_y, self.LASER_THICKNESS, self.LASER_HEIGHT)
+        else:
+            return pygame.Rect(start_x, start_y, self.LASER_WIDTH, self.LASER_THICKNESS)
+
+
     def _is_vertical(self):
         """Check if the laser is vertical based on points"""
         return self.points[0][1] != self.points[1][1]

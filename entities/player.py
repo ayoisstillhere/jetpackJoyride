@@ -12,20 +12,21 @@ class Player:
         self.velocity_y = 0
         self.gravity = 0.4
         self.counter = 0  # frame index control
-        self.booster = False
+
+        # Continuous control variables
+        self.booster_power = 0.0   # 0.0 to 1.0
+        self.move_speed = 0.0      # -1.0 (left) to 1.0 (right)
+
+        self.booster_strength = 2.0          # Tunable: controls vertical boost force
+        self.max_horizontal_speed = 5.0      # Tunable: max horizontal speed
+
         self.controlled_by_ai = False
-        self.booster_duration = 0  # holding the space bar to jump
-        self.max_booster_duration = 5
+
         self.character_type = character_type
-        self.move_left = False
-        self.move_right = False
-        self.horizontal_speed = 5
         self.can_shoot = True
-        self.shoot_cooldown = 0.5  # 0.5 seconds cooldown
+        self.shoot_cooldown = 0.5
         self.last_shot_time = 0
 
-        # Load assets based on character type
-        # All characters use the same naming convention (1.PNG, 2.PNG, etc.)
         if render:
             self.run_frames = [
                 pygame.transform.scale(
@@ -55,16 +56,17 @@ class Player:
         current_time = time.time()
         if self.can_shoot and current_time - self.last_shot_time > self.shoot_cooldown:
             self.last_shot_time = current_time
-            return Projectile(self.x, self.y)  # Adjust starting position as needed
+            return Projectile(self.x, self.y)
         return None
 
     def change_character(self, character_type):
-        """Change the character type and reload assets"""
         self.character_type = character_type
-        # All characters use the same naming convention (1.PNG, 2.PNG, etc.)
-        self.run_frames = [pygame.transform.scale(
-            pygame.image.load(f"assets/{character_type}/run/{i}.PNG").convert_alpha(), (self.width, self.height))
-            for i in range(1, 7)  # Load frames 1 through 6
+        self.run_frames = [
+            pygame.transform.scale(
+                pygame.image.load(f"assets/{character_type}/run/{i}.PNG").convert_alpha(),
+                (self.width, self.height)
+            )
+            for i in range(1, 7)
         ]
         self.jump_up_img = pygame.transform.scale(
             pygame.image.load(f"assets/{character_type}/jump_up.PNG").convert_alpha(), (self.width, self.height)
@@ -74,28 +76,21 @@ class Player:
         )
 
     def get_hitbox(self):
-        return pygame.Rect(self.x, self.y + 5, self.width, self.height)
+        return pygame.Rect(int(self.x), int(self.y + 5), int(self.width), int(self.height))
 
     def draw(self, screen, paused=False):
-        if paused:  # When paused, show static image
-            if self.y < PLAYER_INIT_Y:  # in the air
-                if self.velocity_y < 0:  # going up
-                    if self.booster:
+        if paused:
+            img = self.jump_up_img if self.velocity_y < 0 else self.jump_down_img
+            screen.blit(img, (self.x, self.y))
+        else:
+            if self.y < PLAYER_INIT_Y:
+                if self.velocity_y < 0:
+                    if self.booster_power > 0.05:
                         screen.blit(self.flame_img, (self.x + 15, self.y + self.height))
                     screen.blit(self.jump_up_img, (self.x, self.y))
-                else:  # falling
+                else:
                     screen.blit(self.jump_down_img, (self.x, self.y))
-            else:  # on ground
-                screen.blit(self.run_frames[0], (self.x, self.y))  # Use first frame
-        else:  # Normal animation
-            if self.y < PLAYER_INIT_Y:  # in the air
-                if self.velocity_y < 0:  # going up
-                    if self.booster:
-                        screen.blit(self.flame_img, (self.x + 15, self.y + self.height))
-                    screen.blit(self.jump_up_img, (self.x, self.y))
-                else:  # falling
-                    screen.blit(self.jump_down_img, (self.x, self.y))
-            else:  # running
+            else:
                 frame_index = (self.counter // 6) % len(self.run_frames)
                 screen.blit(self.run_frames[frame_index], (self.x, self.y))
 
@@ -105,22 +100,33 @@ class Player:
         self.counter = (self.counter + 1) % (6 * len(self.run_frames))
 
     def update_position(self, colliding_top, colliding_bottom):
-        # Handle vertical collisions and update vertical velocity
+        # --- Vertical boost ---
+        if self.booster_power > 0.05:
+            self.velocity_y -= self.booster_power * self.booster_strength
+
+        # Apply gravity
+        self.velocity_y += self.gravity
+
+        # Clamp vertical speed (optional)
+        self.velocity_y = max(min(self.velocity_y, 10), -10)
+
+        # Apply vertical position
         if (colliding_bottom and self.velocity_y > 0) or (colliding_top and self.velocity_y < 0):
             self.velocity_y = 0
         self.y += self.velocity_y
 
-        # Handle horizontal movement with boundary checks
-        if self.move_left:
-            self.x = max(0, self.x - self.horizontal_speed)
-        if self.move_right:
-            self.x = min(WIDTH - self.width, self.x + self.horizontal_speed)
+        # --- Horizontal movement ---
+        self.x += self.move_speed * self.max_horizontal_speed
+
+        # Clamp horizontal boundaries
+        if self.x < 0:
+            self.x = 0
+        elif self.x > WIDTH - self.width:
+            self.x = WIDTH - self.width
 
     def reset(self):
         self.y = PLAYER_INIT_Y
         self.velocity_y = 0
         self.counter = 0
-        self.booster = False
-        self.booster_duration = 0
-        self.move_left = False
-        self.move_right = False
+        self.booster_power = 0.0
+        self.move_speed = 0.0
