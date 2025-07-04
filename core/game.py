@@ -1,7 +1,6 @@
 import pygame
 import random, os
 
-from ai import RuleBasedAgent
 from config.settings import WIDTH, HEIGHT, FPS, BG_COLOR, FONT_PATH
 from core.state import GameState
 from core.events import handle_events
@@ -39,6 +38,9 @@ class Game:
         self.font = pygame.font.Font(FONT_PATH, 32)
         self.title_font = pygame.font.Font(FONT_PATH, 64)
         self.small_font = pygame.font.Font(FONT_PATH, 24)
+        self.laser_rect = pygame.Rect(0, 0, 0, 0)
+        self.top_plat = pygame.Rect(0, 0, WIDTH, 10)
+        self.bot_plat = pygame.Rect(0, HEIGHT - 10, WIDTH, 10)
 
         # Core state
         self.state = GameState()
@@ -75,7 +77,7 @@ class Game:
         self.back_button = None
 
         # AI
-        self.agent = RuleBasedAgent()
+        self.act_with_model = None
         self.player.controlled_by_ai = False
 
         self.running = True
@@ -360,6 +362,9 @@ class Game:
         )
 
         # === Update ===
+        if self.act_with_model is not None and self.player.controlled_by_ai:
+            self.act_with_model()
+
         if not self.state.paused:
             self._update_game_logic()
 
@@ -420,22 +425,6 @@ class Game:
             # meteor updates
             self._update_meteors()
 
-        # === AI Decision ===
-        if self.player.controlled_by_ai:
-            game_obs = {
-                "player_y": self.player.y,
-                "player": self.player,
-                "laser": self.laser_rect,
-                "rocket": self.rocket.get_hitbox(),
-                "coins": [coin.rect for coin in self.coins],
-            }
-            action = self.agent.decide(game_obs)
-            print(f"AI action: {action}")
-
-            self.player.booster = (action == "jump")
-            if action == "jump":
-                self.player.booster_duration = self.player.max_booster_duration
-
         # Coin spawning
         if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
             spawn_coins(self.coins)
@@ -456,12 +445,11 @@ class Game:
         if self.laser.is_offscreen():
             self.laser = Laser()
 
-        # Physics
-        apply_gravity(self.player)
-        self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
-        update_vertical_position(self.player, self.top_hit, self.bot_hit)
+        # update laser_rect even without render
+        self.laser_rect = self.laser.get_hitbox() if hasattr(self.laser, "get_hitbox") else pygame.Rect(0, 0, 0, 0)
 
         # Update player position (including horizontal movement)
+        self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
         self.player.update_position(self.top_hit, self.bot_hit)
 
         # Collision
