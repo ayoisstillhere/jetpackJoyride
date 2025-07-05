@@ -32,15 +32,13 @@ class MeteorSystem:
         return current_time >= self.next_spawn_time
     
     def spawn_meteor(self):
-        """Spawn a new meteor at a random position"""
-        if self.should_spawn():
+        """Spawn a new meteor at a random position, only if no meteors are present"""
+        if len(self.meteors) == 0 and self.should_spawn():
             # Create new meteor
             new_meteor = Meteor()
             self.meteors.append(new_meteor)
-            
             # Set next spawn time
             self.next_spawn_time = self._calculate_next_spawn_time()
-            
             return True
         return False
     

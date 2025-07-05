@@ -70,3 +70,12 @@ class Laser:
 
     def reset(self):
         self.points = self._generate()
+
+    def get_hitbox(self):
+        # 计算当前激光的碰撞矩形，与draw方法一致
+        start_x = min(self.points[0][0], self.points[1][0])
+        start_y = min(self.points[0][1], self.points[1][1])
+        if self._is_vertical():
+            return pygame.Rect(start_x, start_y, self.LASER_THICKNESS, self.LASER_HEIGHT)
+        else:
+            return pygame.Rect(start_x, start_y, self.LASER_WIDTH, self.LASER_THICKNESS)

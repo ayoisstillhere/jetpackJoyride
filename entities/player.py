@@ -10,7 +10,7 @@ class Player:
         self.width = 48
         self.height = 60
         self.velocity_y = 0
-        self.gravity = 0.4
+        self.gravity = 0.6
         self.counter = 0  # frame index control
         self.booster = False
         self.controlled_by_ai = False
@@ -117,6 +117,7 @@ class Player:
             self.x = min(WIDTH - self.width, self.x + self.horizontal_speed)
 
     def reset(self):
+        self.x = 120
         self.y = PLAYER_INIT_Y
         self.velocity_y = 0
         self.counter = 0

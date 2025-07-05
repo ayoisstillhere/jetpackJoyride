@@ -75,7 +75,7 @@ class Game:
         self.back_button = None
 
         # AI
-        self.agent = RuleBasedAgent()
+        # self.agent = RuleBasedAgent()
         self.player.controlled_by_ai = False
 
         self.running = True
@@ -425,15 +425,15 @@ class Game:
             game_obs = {
                 "player_y": self.player.y,
                 "player": self.player,
-                "laser": self.laser_rect,
+                "laser": self.laser.get_hitbox(),
                 "rocket": self.rocket.get_hitbox(),
                 "coins": [coin.rect for coin in self.coins],
             }
-            action = self.agent.decide(game_obs)
-            print(f"AI action: {action}")
+            # action = self.agent.decide(game_obs)
+            # print(f"AI action: {action}")
 
-            self.player.booster = (action == "jump")
-            if action == "jump":
+            self.player.booster = False
+            if False:
                 self.player.booster_duration = self.player.max_booster_duration
 
         # Coin spawning
@@ -469,7 +469,8 @@ class Game:
         if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
             self._trigger_game_over()
 
-        if self.laser_rect.colliderect(self.player.get_hitbox()):
+        laser_box = self.laser.get_hitbox()
+        if laser_box and laser_box.colliderect(self.player.get_hitbox()):
             self._trigger_game_over()
 
         # Meteor Collision Checks
