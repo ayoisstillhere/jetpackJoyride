@@ -6,10 +6,10 @@ import time
 
 if __name__ == '__main__':
     # 加载环境
-    env = JetpackEnv(render=True)
+    env = JetpackEnv(render=True, curriculum_stage=1)
 
     # 加载模型
-    model = PPO.load("ai/ppo_jetpack_agent")
+    model = PPO.load("ai\checkpoints\ppo_jetpack_checkpoint_100000_steps.zip")
 
     obs = env.reset()
     done = False

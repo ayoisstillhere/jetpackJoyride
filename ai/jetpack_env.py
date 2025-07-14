@@ -1,12 +1,14 @@
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 from core.game import Game, GameStates
 from config.settings import WIDTH, HEIGHT
 
 class JetpackEnv(gym.Env):
-    def __init__(self, render=False):
+    def __init__(self, render=False, curriculum_stage=3):
         super(JetpackEnv, self).__init__()
+        self.curriculum_stage = curriculum_stage
+        self.render = render
         self.game = Game(render=render)
 
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(29,), dtype=np.float32)
@@ -20,12 +22,19 @@ class JetpackEnv(gym.Env):
         self.frames_not_on_ground = 0  # 连续不在地面帧数
         self.frames_not_on_ceiling = 0  # 连续不在顶部帧数
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
+        if seed is not None:
+            self.np_random, _ = gym.utils.seeding.np_random(seed)
         self.game._start_new_game()
+        # 新增：设置课程阶段
+        if hasattr(self.game, 'set_curriculum_stage'):
+            self.game.set_curriculum_stage(self.curriculum_stage)
         self.last_distance = 0  # 重置距离
         self.frames_not_on_ground = 0
         self.frames_not_on_ceiling = 0
-        return self._get_obs()
+        obs = self._get_obs()
+        info = {}
+        return obs, info
 
     def step(self, action):
         self.game.player.controlled_by_ai = True
@@ -82,10 +91,11 @@ class JetpackEnv(gym.Env):
         self.last_distance = self.game.state.distance
         obs = self._get_obs(on_ground=on_ground, on_ceiling=on_ceiling)
         reward = self._get_reward(coin_count_before, distance_delta, shoot)
-        done = self.game.game_state == GameStates.GAME_OVER
+        terminated = self.game.game_state == GameStates.GAME_OVER
+        truncated = False  # 可根据需要设置截断条件
         info = {}
 
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
 
     def render(self, mode="human"):
         if self.game.render:
@@ -97,21 +107,24 @@ class JetpackEnv(gym.Env):
             on_ground = getattr(self.game, 'bot_hit', False)
         if on_ceiling is None:
             on_ceiling = getattr(self.game, 'top_hit', False)
-        WIDTH = self.game.screen.get_width() if self.game.render else WIDTH
-        HEIGHT = self.game.screen.get_height() if self.game.render else HEIGHT
+        if self.game.render and hasattr(self.game, 'screen') and self.game.screen:
+            width = self.game.screen.get_width()
+            height = self.game.screen.get_height()
+        else:
+            from config.settings import WIDTH as width, HEIGHT as height
 
         # 玩家
         player = getattr(self.game, 'player', None)
-        obs[0] = player.x / WIDTH if player else 0.0
-        obs[1] = player.y / HEIGHT if player else 0.0
+        obs[0] = player.x / width if player else 0.0
+        obs[1] = player.y / height if player else 0.0
         obs[2] = np.clip(player.velocity_y / 20.0, -1.0, 1.0) * 0.5 + 0.5 if player else 0.0
         # 玩家hitbox
         player_box = player.get_hitbox() if player and hasattr(player, 'get_hitbox') else None
         if player_box:
-            obs[23] = player_box.left / WIDTH
-            obs[24] = player_box.right / WIDTH
-            obs[25] = player_box.top / HEIGHT
-            obs[26] = player_box.bottom / HEIGHT
+            obs[23] = player_box.left / width
+            obs[24] = player_box.right / width
+            obs[25] = player_box.top / height
+            obs[26] = player_box.bottom / height
         else:
             obs[23:27] = 0.0
 
@@ -119,10 +132,10 @@ class JetpackEnv(gym.Env):
         rocket = getattr(self.game, 'rocket', None)
         rocket_box = rocket.get_hitbox() if rocket and hasattr(rocket, 'get_hitbox') else None
         if rocket_box:
-            obs[3] = rocket_box.left / WIDTH
-            obs[4] = rocket_box.right / WIDTH
-            obs[5] = rocket_box.top / HEIGHT
-            obs[6] = rocket_box.bottom / HEIGHT
+            obs[3] = rocket_box.left / width
+            obs[4] = rocket_box.right / width
+            obs[5] = rocket_box.top / height
+            obs[6] = rocket_box.bottom / height
         else:
             obs[3:7] = 0.0
 
@@ -130,10 +143,10 @@ class JetpackEnv(gym.Env):
         laser = getattr(self.game, 'laser', None)
         laser_box = laser.get_hitbox() if laser and hasattr(laser, 'get_hitbox') else None
         if laser_box:
-            obs[7] = laser_box.left / WIDTH
-            obs[8] = laser_box.right / WIDTH
-            obs[9] = laser_box.top / HEIGHT
-            obs[10] = laser_box.bottom / HEIGHT
+            obs[7] = laser_box.left / width
+            obs[8] = laser_box.right / width
+            obs[9] = laser_box.top / height
+            obs[10] = laser_box.bottom / height
         else:
             obs[7:11] = 0.0
 
@@ -146,10 +159,10 @@ class JetpackEnv(gym.Env):
                     nearest_coin = coin
                     break
         if nearest_coin:
-            obs[11] = nearest_coin.rect.left / WIDTH
-            obs[12] = nearest_coin.rect.right / WIDTH
-            obs[13] = nearest_coin.rect.top / HEIGHT
-            obs[14] = nearest_coin.rect.bottom / HEIGHT
+            obs[11] = nearest_coin.rect.left / width
+            obs[12] = nearest_coin.rect.right / width
+            obs[13] = nearest_coin.rect.top / height
+            obs[14] = nearest_coin.rect.bottom / height
         else:
             obs[11:15] = 0.0
 
@@ -163,17 +176,17 @@ class JetpackEnv(gym.Env):
         # 火箭预警信息
         rocket_obj = rocket
         obs[17] = 1.0 if rocket_obj and rocket_obj.active and getattr(rocket_obj, 'mode', 1) == 0 else 0.0
-        obs[18] = (rocket_obj.y / HEIGHT) if (rocket_obj and rocket_obj.active and getattr(rocket_obj, 'mode', 1) == 0) else 0.0
+        obs[18] = (rocket_obj.y / height) if (rocket_obj and rocket_obj.active and getattr(rocket_obj, 'mode', 1) == 0) else 0.0
 
         # 陨石
         meteor_system = getattr(self.game, 'meteor_system', None)
         meteor_obj = meteor_system.meteors[0] if meteor_system and hasattr(meteor_system, 'meteors') and meteor_system.meteors else None
         meteor_box = meteor_obj.get_hitbox() if meteor_obj and hasattr(meteor_obj, 'get_hitbox') else None
         if meteor_box:
-            obs[19] = meteor_box.left / WIDTH
-            obs[20] = meteor_box.right / WIDTH
-            obs[21] = meteor_box.top / HEIGHT
-            obs[22] = meteor_box.bottom / HEIGHT
+            obs[19] = meteor_box.left / width
+            obs[20] = meteor_box.right / width
+            obs[21] = meteor_box.top / height
+            obs[22] = meteor_box.bottom / height
         else:
             obs[19:23] = 0.0
 
@@ -183,67 +196,36 @@ class JetpackEnv(gym.Env):
         return obs
 
     def _get_reward(self, coin_count_before, distance_delta, shoot):
-        reward = 1.0  # 存活奖励
+        reward = 0.0
 
-        # 捡到金币奖励
+        # 1. 金币奖励（最高权重）
         if self.game.state.coin_count > coin_count_before:
-            reward += 1.0
+            reward += 2.0
             self.frames_without_coin = 0
         else:
             self.frames_without_coin += 1
 
-        # 太久没捡到金币惩罚
+        # 2. 生存奖励（每帧少量）
+        reward += 0.05
+
+        # 3. 距离奖励（每前进一步有微小奖励）
+        reward += distance_delta * 0.005
+
+        # 4. 太久没捡到金币惩罚
         if self.frames_without_coin >= self.max_frames_without_coin:
             reward -= 0.5
 
-        # 命中火箭奖励
+        # 5. 命中火箭奖励（适中）
         if self.fired_this_step:
-            reward += 3.0
-        # 射击了但没有命中火箭时扣分
+            reward += 0.5
+        # 6. 射击但没命中惩罚（较大）
         elif shoot:
-            reward -= 0.05
+            reward -= 0.2
 
-        # 死亡扣10分
+        # 7. 死亡大惩罚
         if self.game.game_state == GameStates.GAME_OVER:
-            reward -= 10.0
+            reward -= 2.0
 
-        # 距离laser和meteor太近了给惩罚
-        player = getattr(self.game, 'player', None)
-        if player:
-            player_box = player.get_hitbox()
-            if player_box:
-                # 检查与laser的距离
-                laser = getattr(self.game, 'laser', None)
-                if laser and not laser.is_offscreen():
-                    laser_box = laser.get_hitbox()
-                    if laser_box:
-                        # 计算玩家与laser的距离
-                        player_center_x = (player_box.left + player_box.right) / 2
-                        player_center_y = (player_box.top + player_box.bottom) / 2
-                        laser_center_x = (laser_box.left + laser_box.right) / 2
-                        laser_center_y = (laser_box.top + laser_box.bottom) / 2
-                        
-                        distance_to_laser = ((player_center_x - laser_center_x) ** 2 + (player_center_y - laser_center_y) ** 2) ** 0.5
-                        # 如果距离小于100像素，给惩罚
-                        if distance_to_laser < 100:
-                            reward -= 0.05
-                
-                # 检查与meteor的距离
-                meteor_system = getattr(self.game, 'meteor_system', None)
-                if meteor_system and hasattr(meteor_system, 'meteors') and meteor_system.meteors:
-                    meteor = meteor_system.meteors[0]
-                    if meteor and meteor.active:
-                        meteor_box = meteor.get_hitbox()
-                        if meteor_box:
-                            # 计算玩家与meteor的距离
-                            player_center_x = (player_box.left + player_box.right) / 2
-                            player_center_y = (player_box.top + player_box.bottom) / 2
-                            meteor_center_x = (meteor_box.left + meteor_box.right) / 2
-                            meteor_center_y = (meteor_box.top + meteor_box.bottom) / 2
-                            
-                            distance_to_meteor = ((player_center_x - meteor_center_x) ** 2 + (player_center_y - meteor_center_y) ** 2) ** 0.5
-                            # 如果距离小于80像素，给惩罚
-                            if distance_to_meteor < 80:
-                                reward -= 0.05
-
+        # 8. 归一化奖励（限制在[-2, 2]）
+        reward = max(min(reward, 2.0), -2.0)
         return reward
