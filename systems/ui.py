@@ -51,10 +51,6 @@ def draw_screen(screen, surface, font, bg_color, lines, laser_obj, distance, hig
         if lines[i] < 0:
             lines[i] = WIDTH
 
-    # Update laser position if not paused
-    if not pause:
-        laser_obj.update(game_speed)
-
     # Draw laser using the Laser class method
     laser_rect = laser_obj.draw(screen)
 

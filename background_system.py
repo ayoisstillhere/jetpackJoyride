@@ -10,7 +10,7 @@ class BackgroundSystem:
         self.HEIGHT = height
 
         # Scene configuration
-        self.SCENE_CHANGE_DISTANCE = 2000
+        self.SCENE_CHANGE_DISTANCE = 800 
         self.current_distance = 0
         self.background_sequence = ['space', 'another-world', 'land', 'forest', 'mountain']
         self.current_sequence_index = 0
@@ -257,10 +257,10 @@ class BackgroundSystem:
             # debug information output
             if int(distance) % 100 == 0:  # print info every 100 meters
                 print(f"Current distance: {distance:.1f}m")
-                print(f"Next change point: {next_change_point}m")
-                print(f"Distance to change: {distance_to_change:.1f}m")
-                print(f"Portal status: {'active' if self.portal.active else 'inactive'}")
-                print(f"Portal trigger status: {'triggered' if self.portal.triggered else 'not triggered'}")
+                # print(f"Next change point: {next_change_point}m")
+                # print(f"Distance to change: {distance_to_change:.1f}m")
+                # print(f"Portal status: {'active' if self.portal.active else 'inactive'}")
+                # print(f"Portal trigger status: {'triggered' if self.portal.triggered else 'not triggered'}")
 
             # force close portal conditions
             if distance_to_change > self.portal_activation_distance + 100:  # when far from change point
@@ -270,7 +270,7 @@ class BackgroundSystem:
                     self.portal.x = self.WIDTH - 300
                     self.portal.y = self.HEIGHT//2 - 150
 
-            # handle portal appearance
+            # handle portal appearance and immediate background change
             elif distance_to_change <= self.portal_activation_distance and not self.portal.active:
                 print(f"=== Portal Trigger Condition Check ===")
                 print(f"Distance to change point: {distance_to_change:.1f} <= {self.portal_activation_distance}")
@@ -283,26 +283,29 @@ class BackgroundSystem:
                 # ensure portal appears from right side
                 self.portal.x = self.WIDTH - 300
                 self.portal.y = self.HEIGHT//2 - 150
+                
+                new_sequence_index = current_section % len(self.background_sequence)
+                if new_sequence_index != self.current_sequence_index:
+                    self.current_sequence_index = new_sequence_index
+                    new_background = self.background_sequence[self.current_sequence_index]
+                    self.change_background_type(new_background)
 
-            # update portal
             if self.portal.active:
                 self.portal.update(game_speed)
 
-                # check if player collides with portal
-                if player_rect and not self.portal.triggered:
+                if distance_to_change > self.portal_activation_distance - 50:  # Close when 50 meters away from switch point
+                    if not self.portal.triggered:
+                        print("Portal automatically closes")
+                        self.portal.triggered = True
+                        self.portal.deactivate()
+                        self.portal.reset()
+                
+                elif player_rect and not self.portal.triggered:
                     portal_rect = self.portal.get_rect()
                     if portal_rect.colliderect(player_rect):
-                        print("Player hit portal! Preparing scene change...")
                         self.portal.triggered = True
-                        new_sequence_index = current_section % len(self.background_sequence)
-                        if new_sequence_index != self.current_sequence_index:
-                            self.current_sequence_index = new_sequence_index
-                            new_background = self.background_sequence[self.current_sequence_index]
-                            print(f"Through portal! Switching background to: {new_background}, current distance: {distance}m")
-                            self.change_background_type(new_background)
-                            self.portal.deactivate()
-                            # ensure portal is fully reset
-                            self.portal.reset()
+                        self.portal.deactivate()
+                        self.portal.reset()
 
             self.current_distance = distance
 

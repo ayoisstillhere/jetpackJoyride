@@ -3,78 +3,52 @@ import random, math
 import pygame
 
 class Coin:
-    def __init__(self, x, y, value=1):
+    def __init__(self, x, y, value=1, render=True):
         self.x = x
         self.y = y
-        self.radius = 15
+        self.radius = 20
         self.value = value
-        self.image = pygame.transform.scale(pygame.image.load("assets/coin.png").convert_alpha(), (2*self.radius, 2*self.radius))
-        self.rect = self.image.get_rect(center=(x, y))
+        self.render = render
+        
+        if self.render:
+            self.image = pygame.transform.scale(pygame.image.load("assets/coin.png").convert_alpha(), (40, 40))
+            self.rect = self.image.get_rect(center=(x, y))
+        else:
+            self.image = None
+            # Create a simple rect for collision detection even when not rendering
+            self.rect = pygame.Rect(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
     def move(self, speed):
         self.x -= speed
         self.rect.x = self.x - self.radius
 
     def draw(self, surface):
-        surface.blit(self.image, self.rect)
+        if self.render and self.image:
+            surface.blit(self.image, self.rect)
 
-def spawn_coins(coins, pattern=None):
+def spawn_coins(coins, render=True, spacing=150, initial_spawn=False):
     """
-    Add coins to the list based on a spawn pattern.
+    Generate only one coin each time, with random y value and x value determined by mode.
+    spacing parameter controls the distance between coins.
+    initial_spawn: If True, generate coins evenly spaced within the visible screen range
     """
     y_min, y_max = 80, HEIGHT - 80
-    x = WIDTH + 40
-
-    if pattern is None:
-        pattern = random.choice(['single', 'horiz', 'vert', 'diag_up', 'diag_down', 'circle', 'cluster'])
-
-    if pattern == 'single':
-        y = random.randint(y_min, y_max)
-        coins.append(Coin(x, y))
-
-    elif pattern == 'horiz':
-        y = random.randint(y_min, y_max)
-        for i in range(random.randint(3, 8)):
-            coins.append(Coin(x + i * 40, y))
-
-    elif pattern == 'vert':
-        y = random.randint(y_min + 100, y_max - 100)
-        for i in range(random.randint(3, 8)):
-            coins.append(Coin(x, y + i * 40))
-
-    elif pattern == 'diag_up':
-        y = random.randint(y_min + 100, y_max - 100)
-        for i in range(random.randint(3, 7)):
-            coins.append(Coin(x + i * 35, y - i * 35))
-
-    elif pattern == 'diag_down':
-        y = random.randint(y_min + 100, y_max - 100)
-        for i in range(random.randint(3, 7)):
-            coins.append(Coin(x + i * 35, y + i * 35))
-
-    elif pattern == 'circle':
-        n = random.randint(6, 10)
-        radius = random.randint(40, 70)
-        center_y = random.randint(y_min + radius, y_max - radius)
-        center_x = x + 60
-        for i in range(n):
-            angle = 2 * math.pi * i / n
-            cx = center_x + int(radius * math.cos(angle))
-            cy = center_y + int(radius * math.sin(angle))
-            coins.append(Coin(cx, cy))
-
-    elif pattern == 'cluster':
-        rows = random.randint(2, 4)
-        cols = random.randint(3, 6)
-        spacing_x = 32
-        spacing_y = 32
-        center_y = random.randint(y_min + spacing_y * rows, y_max - spacing_y * rows)
-        center_x = x + 40
-        for row in range(rows):
-            for col in range(cols):
-                coin_x = center_x + col * spacing_x
-                coin_y = center_y + row * spacing_y
-                coins.append(Coin(coin_x, coin_y))
+    
+    if initial_spawn:
+        if len(coins) == 0:
+            x = WIDTH - 100
+        else:
+            last_coin_x = min(coin.x for coin in coins)
+            x = last_coin_x - spacing
+    else:
+        if len(coins) == 0:
+            x = WIDTH + 40
+        else:
+            max_x = max(coin.x for coin in coins) if coins else WIDTH
+            x = max(WIDTH + 40, max_x + spacing)
+    
+    y = random.randint(y_min, y_max)
+    coins.append(Coin(x, y, render=render))
 
 
 def update_coins(coins, state, player_hitbox, paused, speed):

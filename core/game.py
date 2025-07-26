@@ -1,13 +1,12 @@
 import pygame
 import random, os
 
-from ai import RuleBasedAgent
 from config.settings import WIDTH, HEIGHT, FPS, BG_COLOR, FONT_PATH
 from core.state import GameState
 from core.events import handle_events
 from systems.meteor_system import MeteorSystem
 from systems.ui import draw_screen
-from systems.physics import apply_gravity, update_vertical_position, check_platform_collisions
+from systems.physics import apply_linear_movement, check_platform_collisions, update_vertical_position
 from entities.player import Player
 from entities.rocket import Rocket
 from entities.laser import Laser
@@ -62,7 +61,8 @@ class Game:
         # Coin system
         self.coins = []
         self.last_coin_spawn = 0
-        self.coin_spawn_distance = 400
+        self.coin_spawn_distance = 200
+        self.coin_spawn_counter = 0 
 
         # Meteor system
         self.meteor_system = MeteorSystem()
@@ -75,7 +75,6 @@ class Game:
         self.back_button = None
 
         # AI
-        # self.agent = RuleBasedAgent()
         self.player.controlled_by_ai = False
 
         self.running = True
@@ -389,9 +388,13 @@ class Game:
         self.state.reset()
         self.player.reset()
         self.rocket.reset()
-        self.laser.reset()
+        self.laser = Laser(render=self.render, initial_spawn=True)
         self.coins = []
         self.meteor_system.clear_meteors()
+        self.coin_spawn_counter = 0  
+        
+        for i in range(3):
+            spawn_coins(self.coins, render=self.render, spacing=200, initial_spawn=True)
 
         # Reset systems
         self.difficulty_system.reset()
@@ -399,6 +402,11 @@ class Game:
         self.background_system.update_by_distance(0)
 
     def _update_game_logic(self):
+        # Initialize platform rectangles for collision detection (needed even when render=False)
+        if not hasattr(self, 'top_plat') or not hasattr(self, 'bot_plat'):
+            self.top_plat = pygame.Rect(0, 0, WIDTH, 50)
+            self.bot_plat = pygame.Rect(0, HEIGHT - 50, WIDTH, 50)
+        
         if not self.state.paused:
             # Update difficulty
             if self.difficulty_system.update(self.state.distance):
@@ -436,10 +444,11 @@ class Game:
             if False:
                 self.player.booster_duration = self.player.max_booster_duration
 
-        # Coin spawning
-        if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
-            spawn_coins(self.coins)
-            self.last_coin_spawn = self.state.distance
+        if not self.state.paused:
+            self.coin_spawn_counter += 1
+            if self.coin_spawn_counter >= 200:  
+                spawn_coins(self.coins, render=self.render)
+                self.coin_spawn_counter = 0
 
         update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self.difficulty_system.game_speed)
 
@@ -454,10 +463,10 @@ class Game:
         # Laser
         self.laser.update(self.difficulty_system.game_speed)
         if self.laser.is_offscreen():
-            self.laser = Laser()
+            self.laser = Laser(render=self.render)
 
         # Physics
-        apply_gravity(self.player)
+        apply_linear_movement(self.player)
         self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
         update_vertical_position(self.player, self.top_hit, self.bot_hit)
 
@@ -537,7 +546,7 @@ class Game:
         """Update meteor system"""
         if not self.state.paused:
             self.meteor_system.update_difficulty(self.state.distance)
-            self.meteor_system.spawn_meteor()
+            self.meteor_system.spawn_meteor(player_x=self.player.x)
             self.meteor_system.update_meteors(self.state.paused, self.difficulty_system.game_speed)
 
     def _check_meteor_collisions(self):

@@ -10,7 +10,7 @@ class Player:
         self.width = 48
         self.height = 60
         self.velocity_y = 0
-        self.gravity = 0.6
+        self.vertical_speed = 10  # Vertical movement speed 10 pixels/frame
         self.counter = 0  # frame index control
         self.booster = False
         self.controlled_by_ai = False
@@ -19,6 +19,8 @@ class Player:
         self.character_type = character_type
         self.move_left = False
         self.move_right = False
+        self.move_up = False
+        self.move_down = False
         self.horizontal_speed = 5
         self.can_shoot = True
         self.shoot_cooldown = 0.5  # 0.5 seconds cooldown
@@ -79,21 +81,21 @@ class Player:
     def draw(self, screen, paused=False):
         if paused:  # When paused, show static image
             if self.y < PLAYER_INIT_Y:  # in the air
-                if self.velocity_y < 0:  # going up
+                if self.booster or self.move_up:  # Moving up or using jetpack
                     if self.booster:
                         screen.blit(self.flame_img, (self.x + 15, self.y + self.height))
                     screen.blit(self.jump_up_img, (self.x, self.y))
-                else:  # falling
+                else:  # Other cases (falling or hovering)
                     screen.blit(self.jump_down_img, (self.x, self.y))
             else:  # on ground
                 screen.blit(self.run_frames[0], (self.x, self.y))  # Use first frame
         else:  # Normal animation
             if self.y < PLAYER_INIT_Y:  # in the air
-                if self.velocity_y < 0:  # going up
+                if self.booster or self.move_up:  # Moving up or using jetpack
                     if self.booster:
                         screen.blit(self.flame_img, (self.x + 15, self.y + self.height))
                     screen.blit(self.jump_up_img, (self.x, self.y))
-                else:  # falling
+                else:  # Other cases (falling or hovering)
                     screen.blit(self.jump_down_img, (self.x, self.y))
             else:  # running
                 frame_index = (self.counter // 6) % len(self.run_frames)
@@ -105,10 +107,25 @@ class Player:
         self.counter = (self.counter + 1) % (6 * len(self.run_frames))
 
     def update_position(self, colliding_top, colliding_bottom):
-        # Handle vertical collisions and update vertical velocity
-        if (colliding_bottom and self.velocity_y > 0) or (colliding_top and self.velocity_y < 0):
-            self.velocity_y = 0
-        self.y += self.velocity_y
+        # Linear vertical movement logic
+        # Check if there's upward input (move_up or booster)
+        moving_up = (self.move_up or self.booster) and not colliding_top
+        moving_down_manually = self.move_down and not colliding_bottom
+        
+        if moving_up:
+            # Active upward movement
+            self.y -= self.vertical_speed
+        elif moving_down_manually:
+            # Active downward movement
+            self.y += self.vertical_speed
+        else:
+            # Default falling logic: automatically fall when not actively moving up
+            if not colliding_bottom:
+                self.y += self.vertical_speed
+
+        # Boundary check - ensure player doesn't go beyond screen boundaries
+        from config.settings import HEIGHT
+        self.y = max(0, min(HEIGHT - self.height, self.y))
 
         # Handle horizontal movement with boundary checks
         if self.move_left:
@@ -119,9 +136,10 @@ class Player:
     def reset(self):
         self.x = 120
         self.y = PLAYER_INIT_Y
-        self.velocity_y = 0
         self.counter = 0
         self.booster = False
         self.booster_duration = 0
         self.move_left = False
         self.move_right = False
+        self.move_up = False
+        self.move_down = False

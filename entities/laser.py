@@ -8,7 +8,8 @@ class Laser:
     LASER_HEIGHT = 200  # Height for vertical lasers
     LASER_THICKNESS = 50  # Thickness of the laser beam
 
-    def __init__(self, render=True):
+    def __init__(self, render=True, initial_spawn=False):
+        self.initial_spawn = initial_spawn
         self.points = self._generate()
         self.render = render
 
@@ -23,15 +24,26 @@ class Laser:
 
     def _generate(self):
         laser_type = random.randint(0, 1)
-        offset = random.randint(10, 300)
+        
+        if self.initial_spawn:
+            offset = random.randint(WIDTH//2, WIDTH - 250) 
+        else:
+            offset = random.randint(10, 300)
+            offset = WIDTH + offset
 
         if laser_type == 0:  # horizontal
             y = random.randint(100, HEIGHT - 100)
-            return [[WIDTH + offset, y], [WIDTH + offset + self.LASER_WIDTH, y]]
+            if self.initial_spawn:
+                return [[offset, y], [offset + self.LASER_WIDTH, y]]
+            else:
+                return [[offset, y], [offset + self.LASER_WIDTH, y]]
 
         else:  # vertical
             y = random.randint(100, HEIGHT - 400)
-            return [[WIDTH + offset, y], [WIDTH + offset, y + self.LASER_HEIGHT]]
+            if self.initial_spawn:
+                return [[offset, y], [offset, y + self.LASER_HEIGHT]]
+            else:
+                return [[offset, y], [offset, y + self.LASER_HEIGHT]]
 
     def update(self, speed):
         self.points[0][0] -= speed
@@ -72,7 +84,7 @@ class Laser:
         self.points = self._generate()
 
     def get_hitbox(self):
-        # 计算当前激光的碰撞矩形，与draw方法一致
+        # Calculate current laser collision rectangle
         start_x = min(self.points[0][0], self.points[1][0])
         start_y = min(self.points[0][1], self.points[1][1])
         if self._is_vertical():

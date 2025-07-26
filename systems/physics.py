@@ -1,6 +1,6 @@
-def apply_gravity(player):
+def apply_linear_movement(player):
     """
-    Apply gravity or upward thrust based on player state.
+    Apply linear movement based on player state, no gravity.
     """
     if player.controlled_by_ai:
         if player.booster_duration > 0:
@@ -8,21 +8,17 @@ def apply_gravity(player):
             player.booster_duration -= 1
         else:
             player.booster = False
-
-    if player.booster:
-        player.velocity_y -= player.gravity
-    else:
-        player.velocity_y += player.gravity
-    # print(f"[PHYSICS] y_velocity: {player.velocity_y}")
+    # No additional physics calculations needed in linear movement mode
+    # All movement is handled directly in update_position
 
 
 def update_vertical_position(player, colliding_top: bool, colliding_bottom: bool):
     """
-    Update player's vertical position based on current velocity and collision state.
+    Update player's vertical position - now handled in player.update_position()
+    This function is kept for compatibility but does nothing in linear movement mode.
     """
-    if (colliding_bottom and player.velocity_y > 0) or (colliding_top and player.velocity_y < 0):
-        player.velocity_y = 0
-    player.y += player.velocity_y
+    # In linear movement mode, position updates are already completed in player.update_position()
+    pass
 
 
 def check_platform_collisions(player_rect, top_platform, bottom_platform):

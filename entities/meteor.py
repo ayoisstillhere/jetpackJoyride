@@ -3,15 +3,22 @@ import random
 from config.settings import WIDTH, HEIGHT
 
 class Meteor:
-    def __init__(self, x=None, y=None):
-        # Position
-        self.x = x if x is not None else random.randint(50, WIDTH - 50)
+    def __init__(self, x=None, y=None, player_x=None):
+        # Position - if player_x is specified, spawn near the player's overhead
+        if player_x is not None:
+            offset_range = 100  # Left and right offset range
+            self.x = player_x + random.randint(-offset_range, offset_range)
+            # Ensure it doesn't exceed screen boundaries
+            self.x = max(50, min(WIDTH - 50, self.x))
+        else:
+            self.x = x if x is not None else random.randint(50, WIDTH - 50)
+        
         self.y = y if y is not None else -50  # Start above screen
 
         # Physics
-        self.fall_speed = random.uniform(3, 6)  # Variable falling speed
+        self.fall_speed = random.uniform(2, 4)
         self.rotation = 0
-        self.rotation_speed = random.uniform(-5, 5)  # Rotation for tumbling effect
+        self.rotation_speed = random.uniform(-5, 5) 
 
         # Visual properties
         self.size = random.randint(30, 60)  # Random size for variety
