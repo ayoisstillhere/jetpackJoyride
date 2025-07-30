@@ -14,11 +14,12 @@ from core.game import Game
 
 # Cria Game renderizado
 game = Game(render=True)
+game.player.controlled_by_ai = True
 
 env = JetpackEnv(render=True)
 env.game = game
 
-model = SAC.load("./ai/models/sac_jetpack_200k.zip")
+model = SAC.load("./ai/models/model_sac_progressive_700k.zip", env=env)
 
 def act_with_sac():
     obs = env._get_obs()
@@ -27,7 +28,7 @@ def act_with_sac():
     game.player.booster_power = np.clip(action[0], 0.0, 1.0)
     game.player.move_speed = np.clip(action[1], -1.0, 1.0)
 
-    if action[2] >= 0.5:
+    if action[2] >= 0.7:
         proj = game.player.shoot()
         if proj:
             game.state.projectiles.append(proj)

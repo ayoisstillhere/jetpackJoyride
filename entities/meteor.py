@@ -4,9 +4,9 @@ from config.settings import WIDTH, HEIGHT
 
 class Meteor:
     def __init__(self, x=None, y=None):
-        # Position
-        self.x = x if x is not None else random.randint(50, WIDTH - 50)
-        self.y = y if y is not None else -50  # Start above screen
+        # Position (keep as float for physics)
+        self.x = float(x if x is not None else random.randint(50, WIDTH - 50))
+        self.y = float(y if y is not None else -50)  # Start above screen
 
         # Physics
         self.fall_speed = random.uniform(3, 6)  # Variable falling speed
@@ -23,8 +23,10 @@ class Meteor:
             (128, 128, 128)  # Gray
         ])
 
-        # Collision
-        self.rect = pygame.Rect(self.x - self.size//2, self.y - self.size//2, self.size, self.size)
+        # Collision rectangle (always use int for pygame.Rect)
+        self.rect = pygame.Rect(int(self.x - self.size//2),
+                                int(self.y - self.size//2),
+                                self.size, self.size)
 
         # Status
         self.active = True
@@ -38,7 +40,7 @@ class Meteor:
         if paused:
             return
 
-        # Update position
+        # Update position (float)
         self.y += self.fall_speed * game_speed
 
         # Update rotation for tumbling effect
@@ -48,9 +50,9 @@ class Meteor:
         elif self.rotation < 0:
             self.rotation += 360
 
-        # Update collision rect
-        self.rect.x = self.x - self.size//2
-        self.rect.y = self.y - self.size//2
+        # Update collision rect (convert to int to avoid pygame errors)
+        self.rect.x = int(self.x - self.size//2)
+        self.rect.y = int(self.y - self.size//2)
 
         # Update trail
         self.trail_positions.append((self.x, self.y))
@@ -75,7 +77,8 @@ class Meteor:
             # Create surface for alpha blending
             trail_surface = pygame.Surface((trail_size * 2, trail_size * 2), pygame.SRCALPHA)
             pygame.draw.circle(trail_surface, trail_color, (trail_size, trail_size), trail_size)
-            screen.blit(trail_surface, (trail_x - trail_size, trail_y - trail_size))
+            # Use int() here for blit positions
+            screen.blit(trail_surface, (int(trail_x - trail_size), int(trail_y - trail_size)))
 
         # Draw main meteor body
         meteor_surface = pygame.Surface((self.size * 2, self.size * 2), pygame.SRCALPHA)
@@ -96,8 +99,8 @@ class Meteor:
         if self.rotation != 0:
             meteor_surface = pygame.transform.rotate(meteor_surface, self.rotation)
 
-        # Get the rect of the rotated surface and center it
-        rotated_rect = meteor_surface.get_rect(center=(self.x, self.y))
+        # Get the rect of the rotated surface and center it (convert to int)
+        rotated_rect = meteor_surface.get_rect(center=(int(self.x), int(self.y)))
         screen.blit(meteor_surface, rotated_rect)
 
         # Optional: Draw collision rect for debugging

@@ -79,20 +79,21 @@ class Player:
         return pygame.Rect(int(self.x), int(self.y + 5), int(self.width), int(self.height))
 
     def draw(self, screen, paused=False):
+        ix, iy = int(self.x), int(self.y)
         if paused:
             img = self.jump_up_img if self.velocity_y < 0 else self.jump_down_img
-            screen.blit(img, (self.x, self.y))
+            screen.blit(img, (ix, iy))
         else:
             if self.y < PLAYER_INIT_Y:
                 if self.velocity_y < 0:
                     if self.booster_power > 0.05:
-                        screen.blit(self.flame_img, (self.x + 15, self.y + self.height))
-                    screen.blit(self.jump_up_img, (self.x, self.y))
+                        screen.blit(self.flame_img, (ix + 15, iy + self.height))
+                    screen.blit(self.jump_up_img, (ix, iy))
                 else:
-                    screen.blit(self.jump_down_img, (self.x, self.y))
+                    screen.blit(self.jump_down_img, (ix, iy))
             else:
                 frame_index = (self.counter // 6) % len(self.run_frames)
-                screen.blit(self.run_frames[frame_index], (self.x, self.y))
+                screen.blit(self.run_frames[frame_index], (ix, iy))
 
         return self.get_hitbox()
 

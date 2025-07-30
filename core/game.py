@@ -1,5 +1,6 @@
 import pygame
 import random, os
+from typing import Callable, Optional
 
 from config.settings import WIDTH, HEIGHT, FPS, BG_COLOR, FONT_PATH
 from core.state import GameState
@@ -23,9 +24,10 @@ class GameStates:
     CHARACTER_SELECT = "character_select"
 
 class Game:
-    def __init__(self, render=True):
+    def __init__(self, render=True, mode="progressive"):
         pygame.init()
         self.render = render
+        self.mode = mode
 
         if self.render:
             self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -64,7 +66,7 @@ class Game:
         # Coin system
         self.coins = []
         self.last_coin_spawn = 0
-        self.coin_spawn_distance = 400
+        self.coin_spawn_distance = 100
 
         # Meteor system
         self.meteor_system = MeteorSystem()
@@ -77,8 +79,8 @@ class Game:
         self.back_button = None
 
         # AI
-        self.act_with_model = None
         self.player.controlled_by_ai = False
+        self.act_with_model: Optional[Callable[[], None]] = None
 
         self.running = True
 
@@ -192,7 +194,6 @@ class Game:
 
         # Instructions
         instructions = [
-            "Use SPACE to boost your jetpack",
             "Collect coins and avoid obstacles",
             "Press SPACE or click START to begin",
             "Press C or click CHARACTER to choose character"
@@ -220,7 +221,7 @@ class Game:
 
         # High score display
         if self.state.high_score > 0:
-            high_score_text = self.font.render(f"High Score: {int(self.state.high_score)}", True, 'yellow')
+            high_score_text = self.font.render(f"Global Highest Score: {int(self.state.high_score)}", True, 'yellow')
             high_score_rect = high_score_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
             self.screen.blit(high_score_text, high_score_rect)
 
@@ -403,29 +404,24 @@ class Game:
         self.background_system.reset()
         self.background_system.update_by_distance(0)
 
+        spawn_coins(self.coins, pattern='horiz')
+        self.last_coin_spawn = self.state.distance
+
+
     def _update_game_logic(self):
         if not self.state.paused:
             # Update difficulty
             if self.difficulty_system.update(self.state.distance):
-                # Update the background if the difficulty level changes
                 self.background_system.update_by_distance(self.state.distance)
 
-            # Update game speed based on difficulty
             game_speed = self.difficulty_system.game_speed
-
-            # Update background
             self.background_system.update(pause=False, distance=self.state.distance, game_speed=game_speed)
-
-            # Update other game elements with the new speed
             self.state.distance += game_speed
 
-            # Animation + Distance
             self.player.update_animation()
-
-            # meteor updates
             self._update_meteors()
 
-        # Coin spawning
+        # Coin spawning (skip in fixed mode)
         if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
             spawn_coins(self.coins)
             self.last_coin_spawn = self.state.distance
@@ -535,3 +531,4 @@ class Game:
             self._trigger_game_over()
             return True
         return False
+

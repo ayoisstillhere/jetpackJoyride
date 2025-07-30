@@ -1,196 +1,343 @@
+import random
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from core.game import Game, GameStates
+from entities.coin import spawn_coins
 from config.settings import WIDTH, HEIGHT
 
+# === REWARD CONSTANTS ===
+COIN_REWARD = 15.0
+COIN_SHAPING_SCALE = 2.0
+PENALTY_NO_COIN = 1.0
+
+ROCKET_DESTROY_REWARD = 8.0
+ROCKET_SHAPING_SCALE = 0.2
+ROCKET_DANGER_RADIUS = 0.15 * WIDTH
+ROCKET_DANGER_PENALTY = 2.0
+PENALTY_BAD_SHOT = 0.5
+
+LASER_DANGER_RADIUS = 0.15 * WIDTH
+LASER_DANGER_PENALTY = 2.0
+
+METEOR_DANGER_RADIUS = 0.15 * WIDTH
+METEOR_DANGER_PENALTY = 2.0
+
+PENALTY_DEATH = 10.0
+
 class JetpackEnv(gym.Env):
-    def __init__(self, render=False):
+    def __init__(self, render=False, mode="progressive"):
         super(JetpackEnv, self).__init__()
-        self.game = Game(render=render)
+        self.mode = mode
+        self.game = Game(render=render, mode=mode)
 
-        # Observation space: 16-dimensional vector
-        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(18,), dtype=np.float32)
+        # Curriculum
+        self.curriculum_stage = 0
+        self.steps_done = 0
+        self.stage_thresholds = [0, 50000, 200000, 400000] # to a 700k total timesteps
 
-        # Action space: y_movement [-1, 1], x_movement [-1, 1], shoot [0, 1]
-        self.action_space = spaces.Box(low=np.array([-1.0, -1.0, 0.0]), high=np.array([1.0, 1.0, 1.0]), dtype=np.float32)
+        # Observation space
+        self.observation_space = spaces.Box(
+            low=np.array([0.0, 0.0, 0.0] + [-1.0, -1.0]*4 + [0.0], dtype=np.float32),
+            high=np.array([1.0, 1.0, 1.0] + [ 1.0,  1.0]*4 + [1.0], dtype=np.float32),
+            dtype=np.float32
+        )
+
+        self.action_space = spaces.Box(
+            low=np.array([-1.0, -1.0, 0.0]),
+            high=np.array([1.0, 1.0, 1.0]),
+            dtype=np.float32
+        )
 
         self.frames_without_coin = 0
-        self.max_frames_without_coin = 60
+        self.max_frames_without_coin = 500
         self.total_shots_fired = 0
         self.total_deaths = 0
         self.total_coins = 0
+        self.prev_meteor_distance = None
+        self.prev_laser_distance = None
+        self.prev_rocket_distance = None
 
+    def _apply_curriculum(self):
+        """
+        Liga/desliga obstáculos e inimigos dependendo do estágio do currículo.
+        stage 0: só moedas
+        stage 1: moedas + meteoro
+        stage 2: moedas + meteoro + laser
+        stage 3: tudo (inclui rocket e tiros)
+        """
+        if self.mode != "progressive":
+            return
 
-    def reset(self, *, seed=None, options=None):
+        # print(f"[DEBUG] Aplicando curriculum: stage={self.curriculum_stage}")
+
+        # Sempre ativo: moedas
+        # Stage 0: apenas moedas
+        if self.curriculum_stage < 1:
+            self.game.rocket.active = False
+            if hasattr(self.game.laser, "reset"):
+                self.game.laser.reset()
+            self.game.meteor_system.clear_meteors()
+        # Stage 1: meteoros
+        elif self.curriculum_stage == 1:
+            self.game.rocket.active = False
+            if hasattr(self.game.laser, "reset"):
+                self.game.laser.reset()
+        # Stage 2: meteoros + laser
+        elif self.curriculum_stage == 2:
+            self.game.rocket.active = False
+        # Stage 3: tudo ativo
+        else:
+            pass
+
+    def reset(self, *, seed=None):
         super().reset(seed=seed)
         self.game._start_new_game()
         self.frames_without_coin = 0
-        obs = self._get_obs()
-        info = {}
-        return obs, info
+        self.episode_steps = 0
+        self.max_episode_steps_stage0 = random.randint(1500, 2000)
+        print(f"[DEBUG] Resetando ambiente. Stage atual = {self.curriculum_stage}")
+        spawn_coins(self.game.coins, pattern="horiz")
 
+        return self._get_obs(), {}
 
     def step(self, action):
+        self.steps_done += 1
+        self.episode_steps += 1
+        done = False
+        for i, th in enumerate(self.stage_thresholds):
+            if self.steps_done >= th:
+                self.curriculum_stage = i
+
         player = self.game.player
         player.controlled_by_ai = True
-
-        # booster power (vertical)
         player.booster_power = np.clip(action[0], 0.0, 1.0)
-
-        # horizontal movement (-1.0 to 1.0)
         player.move_speed = np.clip(action[1], -1.0, 1.0)
-
-        # shoot
-        shoot = action[2] >= 0.5
+        shaped_r = 0.0
+        rocket_active_before_shoot = self.game.rocket.active if self.game.rocket else False
         shoot_success = False
-        if shoot:
-            proj = player.shoot()
-            if proj:
-                self.game.state.projectiles.append(proj)
-                shoot_success = True
-                self.total_shots_fired += 1
+
+        # Aplica regras do curriculum se progressivo
+        self._apply_curriculum()
 
         coin_count_before = self.game.state.coin_count
-        rocket_alive_before = self.game.rocket.active
-        rocket_hitbox = self.game.rocket.get_hitbox() if self.game.rocket else None
-
         self.game._update_game_logic()
-
         obs = self._get_obs()
         reward = 0.0
 
-        # === Coin reward ===
-        coins_collected = self.game.state.coin_count - coin_count_before
-        reward += coins_collected * 10.0
+        if self.curriculum_stage >= 3:
+            rocket_mode_before_shoot = self.game.rocket.mode if self.game.rocket else None # TO REMOVE
+            shoot = action[2] >= 0.7
+            if shoot and rocket_mode_before_shoot == 1:
+                projectile = player.shoot()
+                if projectile:
+                    self.game.state.projectiles.append(projectile)
+                    self.total_shots_fired += 1
+                    shoot_success = True
 
-        # penalize inactivity (too many frames without coins)
+        # --- Reward coins ---
+        coins_collected = self.game.state.coin_count - coin_count_before
+        reward += coins_collected * COIN_REWARD
+
+        # Shaping para proximidade da moeda
+        nearest_coin = None
+        min_dist = float("inf")
+        for coin in self.game.coins:
+            cx, cy = coin.rect.centerx, coin.rect.centery
+            d = np.hypot(cx - player.x, cy - player.y)
+            if d < min_dist:
+                min_dist = d
+                nearest_coin = coin
+        if nearest_coin:
+            reward += COIN_SHAPING_SCALE * (1.0 - np.tanh(min_dist / WIDTH))
+
+        # Penalidade se fica muito tempo sem pegar moedas
         if coins_collected == 0:
             self.frames_without_coin += 1
         else:
             self.frames_without_coin = 0
-
         if self.frames_without_coin > self.max_frames_without_coin:
-            reward -= 0.5
-            self.frames_without_coin = 0 # reset after penalty
+            reward -= PENALTY_NO_COIN
+            self.frames_without_coin = 0
 
-        # === Rocket shaping reward ===
-        shaped_r = 0.0
-        rocket_alive_after = self.game.rocket.active
-        if rocket_alive_before and not rocket_alive_after:
-            reward += 5.0  # destroyed rocket
+        # --- Meteor proximity shaping ---
+        meteor_penalty = 0.0
+        if self.curriculum_stage >= 1 and self.game.meteor_system.meteors:
+            nearest_meteor = None
+            min_dist = float("inf")
+            for m in self.game.meteor_system.meteors:
+                d = np.hypot(m.rect.centerx - player.x, m.rect.centery - player.y)
+                if d < min_dist:
+                    min_dist = d
+                    nearest_meteor = m
 
-        elif rocket_hitbox:
-            # Incentivar mirar bem: quanto mais perto, maior reward incremental
-            dist = np.hypot(rocket_hitbox.centerx - player.x, rocket_hitbox.centery - player.y)
-            shaped_r = 0.05 / (dist + 1.0)
-            reward += shaped_r
+            if nearest_meteor is not None:
+                dx = nearest_meteor.rect.centerx - player.x
+                dy = nearest_meteor.rect.centery - player.y
+                dist = np.hypot(dx, dy)
+                if dist < METEOR_DANGER_RADIUS:
+                    meteor_penalty =  METEOR_DANGER_PENALTY * (1.0 - dist / METEOR_DANGER_RADIUS)
+                    reward -= meteor_penalty
 
-        if shoot_success and rocket_alive_after:
-            reward -= 0.1  # penalize if it is shooting randomly
+                # reward shaping based on distance to previous meteor
+                if self.prev_meteor_distance is not None and dist > self.prev_meteor_distance:
+                    reward += 0.1 * (dist - self.prev_meteor_distance)
 
-        # === Survival reward ===
-        reward += 0.05
+                self.prev_meteor_distance = dist
+            else:
+                self.prev_meteor_distance = None
 
-        # === Done check ===
-        done = self.game.game_state == GameStates.GAME_OVER
-        if done:
-            reward -= 10.0
+        # --- Laser proximity shaping ---
+        laser_penalty = 0.0
+        if self.curriculum_stage >= 2 and self.game.laser_rect:
+            laser_rect = self.game.laser_rect
+            dx = laser_rect.centerx - player.x
+            dy = laser_rect.centery - player.y
+            dist = np.hypot(dx, dy)
+            if dist < LASER_DANGER_RADIUS:
+                laser_penalty = LASER_DANGER_PENALTY * (1.0 - dist / LASER_DANGER_RADIUS)
+                reward -= laser_penalty
+
+            # Reward shaping based on distance to previous laser
+            if self.prev_laser_distance is not None and dist > self.prev_laser_distance:
+                reward += 0.1 * (dist - self.prev_laser_distance)
+
+                self.prev_laser_distance = dist
+            else:
+                self.prev_laser_distance = None
+
+        # --- Rocket and shooting logic ---
+        rocket_penalty = 0.0
+        if self.curriculum_stage >= 3:
+            rocket_active_after_shoot = self.game.rocket.active
+            rocket_mode_after_shoot = self.game.rocket.mode if self.game.rocket else None
+            rocket_hitbox = self.game.rocket.get_hitbox() if self.game.rocket else None
+
+            if rocket_active_before_shoot and not rocket_active_after_shoot:
+                reward += ROCKET_DESTROY_REWARD
+
+            elif rocket_hitbox and rocket_mode_after_shoot == 1:
+                # O foguete está ativo em modo ataque
+                dist = np.hypot(
+                    rocket_hitbox.centerx - player.x,
+                    rocket_hitbox.centery - player.y
+                )
+
+                # Recompensa de shaping por se aproximar da trajetória do foguete
+                shaped_r = ROCKET_SHAPING_SCALE / (dist + 1.0)
+                reward += shaped_r
+
+                # Penaliza se está muito perto do foguete (zona de perigo)
+                if dist < ROCKET_DANGER_RADIUS:
+                    rocket_penalty = ROCKET_DANGER_PENALTY * (1.0 - dist / ROCKET_DANGER_RADIUS)
+                    reward -= rocket_penalty
+
+                # Pequeno bônus se conseguiu aumentar a distância em relação ao passo anterior
+                if self.prev_rocket_distance is not None and dist > self.prev_rocket_distance:
+                    reward += 0.05 * (dist - self.prev_rocket_distance)
+
+                self.prev_rocket_distance = dist
+
+            else:
+                # Foguete em aviso (mode 0) ou inativo: reset histórico
+                self.prev_rocket_distance = None
+
+            # Penalidade por tiro ruim (atirou, mas foguete continua ativo)
+            if shoot_success and rocket_active_after_shoot:
+                reward -= PENALTY_BAD_SHOT
+
+        # Finaliza se morreu
+        if self.curriculum_stage == 0 and self.episode_steps > self.max_episode_steps_stage0:
+            done = True
+        if self.game.game_state == GameStates.GAME_OVER:
+            done = True
+            reward -= PENALTY_DEATH
             self.total_deaths += 1
             self.total_coins += self.game.state.coin_count
 
-        # === logs ===
         info = {
-            "shots_fired": self.total_shots_fired,
             "coins_collected": self.game.state.coin_count,
+            "coins_reward": coins_collected * COIN_REWARD,
+            "frames_without_coin": self.frames_without_coin,
             "deaths": self.total_deaths,
+            "shots_fired": self.total_shots_fired,
             "rocket_reward": shaped_r,
-            "coins_reward": coins_collected * 10.0,
-            "survival_reward": 0.05,
+            "rocket_penalty": rocket_penalty,
+            "meteor_penalty": meteor_penalty,
+            "laser_penalty": laser_penalty,
+            "distance_to_coin": min_dist if nearest_coin else None,
+            "episode_reward": float(reward),
         }
-        terminated = done
-        truncated = False
 
-        return obs, reward, terminated, truncated, info
+        # Adicionar estágio atual para acompanhar no TensorBoard
+        if self.mode == "progressive":
+            info["curriculum_stage"] = self.curriculum_stage
 
+        return obs, float(reward), done, False, info
 
     def _get_obs(self):
-        player = self.game.player
-        rocket_hitbox = self.game.rocket.get_hitbox() if self.game.rocket else None
-        laser = self.game.laser_rect if hasattr(self.game, "laser_rect") and self.game.laser_rect else None
-        coins = self.game.coins
-        meteors = self.game.meteor_system.meteors if hasattr(self.game.meteor_system, "meteors") else []
+        """
+        Retorna um vetor de 11 valores normalizados:
+        [x_norm, y_norm, vy_norm,
+         dx_coin, dy_coin,
+         dx_rocket, dy_rocket,
+         dx_laser, dy_laser,
+         dx_meteor, dy_meteor,
+         rocket_active_flag]
+        """
 
-        # === Find nearest coin by Euclidean distance ===
+        p = self.game.player
+
+        # Normaliza posição e velocidade
+        x_norm = np.clip(p.x / WIDTH, 0.0, 1.0)
+        y_norm = np.clip(p.y / HEIGHT, 0.0, 1.0)
+        vy_norm = np.clip(p.velocity_y / 20.0, -1.0, 1.0) * 0.5 + 0.5
+
+        def rel(entity):
+            """Retorna posição relativa (dx, dy) normalizada entre -1 e 1"""
+            if entity is None:
+                return 0.0, 0.0
+            cx, cy = entity.centerx, entity.centery
+            return (
+                np.clip((cx - p.x) / WIDTH, -1.0, 1.0),
+                np.clip((cy - p.y) / HEIGHT, -1.0, 1.0)
+            )
+
+        # === Coin mais próxima (2D) ===
         nearest_coin = None
         min_dist = float("inf")
-        for coin in coins:
-            cx, cy = coin.rect.centerx, coin.rect.centery
-            dist = np.hypot(cx - player.x, cy - player.y)
-            if dist < min_dist:
-                min_dist = dist
-                nearest_coin = coin
+        for c in self.game.coins:
+            dx = abs(c.rect.centerx - p.x)
+            dy = abs(c.rect.centery - p.y)
+            d = np.hypot(dx, dy)
+            if d < min_dist:
+                min_dist = d
+                nearest_coin = c.rect
 
-        obs = np.zeros(18, dtype=np.float32)
+        # === Meteor mais próximo ===
+        nearest_meteor = None
+        if self.game.meteor_system.meteors:
+            nearest_meteor = min(
+                [m.rect for m in self.game.meteor_system.meteors],
+                key=lambda r: abs(r.centerx - p.x)
+            )
 
-        # Player y
-        obs[0] = np.clip(player.y / HEIGHT, 0.0, 1.0)
+        rocket_rect = self.game.rocket.get_hitbox()
+        laser_rect = self.game.laser_rect if hasattr(self.game, "laser_rect") else None
 
-        # Player velocity_y (normalized to [0, 1])
-        obs[1] = np.clip(player.velocity_y / 20.0, -1.0, 1.0) * 0.5 + 0.5
+        # Calcula deslocamentos relativos
+        dx_coin, dy_coin = rel(nearest_coin)
+        dx_rocket, dy_rocket = rel(rocket_rect)
+        dx_laser, dy_laser = rel(laser_rect)
+        dx_meteor, dy_meteor = rel(nearest_meteor)
 
-        # Rocket
-        if rocket_hitbox:
-            obs[2] = np.clip(rocket_hitbox.centerx / WIDTH, 0.0, 1.0)
-            obs[3] = np.clip(rocket_hitbox.centery / HEIGHT, 0.0, 1.0)
-        else:
-            obs[2] = 0.0
-            obs[3] = 0.0
+        rocket_active_flag = 1.0 if self.game.rocket.active and getattr(self.game.rocket, 'mode', 0) == 1 else 0.0
 
-        # Laser
-        if laser:
-            obs[4] = np.clip(laser.centerx / WIDTH, 0.0, 1.0)
-            obs[5] = np.clip(laser.centery / HEIGHT, 0.0, 1.0)
-        else:
-            obs[4] = 0.0
-            obs[5] = 0.0
-
-        # Nearest coin info
-        if nearest_coin:
-            obs[6] = np.clip(nearest_coin.rect.centerx / WIDTH, 0.0, 1.0)
-            obs[7] = np.clip(nearest_coin.rect.centery / HEIGHT, 0.0, 1.0)
-
-            # Relative normalized horizontal and vertical distances to coin
-            dx = nearest_coin.rect.centerx - player.x
-            dy = nearest_coin.rect.centery - player.y
-            obs[8] = np.clip(dx / WIDTH, -1.0, 1.0)
-            obs[9] = np.clip(dy / HEIGHT, -1.0, 1.0)
-        else:
-            obs[6] = 0.0
-            obs[7] = 0.0
-            obs[8] = 0.0
-            obs[9] = 0.0
-
-        # Game speed
-        speed = self.game._get_speed() if hasattr(self.game, "_get_speed") else self.game.difficulty_system.game_speed
-        obs[10] = np.clip(speed / 13.0, 0.0, 1.0)
-
-        # Frames without coin
-        obs[11] = np.clip(self.frames_without_coin / self.max_frames_without_coin, 0.0, 1.0)
-
-        # Meteors: up to 3
-        for i in range(3):
-            if i < len(meteors):
-                m = meteors[i].rect
-                obs[12 + i * 2] = np.clip(m.centerx / WIDTH, 0.0, 1.0)
-                obs[13 + i * 2] = np.clip(m.centery / HEIGHT, 0.0, 1.0)
-            else:
-                obs[12 + i * 2] = 0.0
-                obs[13 + i * 2] = 0.0
-
-        return obs
-
-
-    def render(self, mode="human"):
-        if self.game.render:
-            self.game._draw_game_screen()
+        return np.array([
+            x_norm, y_norm, vy_norm,
+            dx_coin, dy_coin,
+            dx_rocket, dy_rocket,
+            dx_laser, dy_laser,
+            dx_meteor, dy_meteor,
+            rocket_active_flag
+        ], dtype=np.float32)

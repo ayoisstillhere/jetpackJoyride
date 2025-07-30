@@ -1,6 +1,6 @@
 import pygame
 import sys
-from background_system import BackgroundSystem
+from core.background_system import BackgroundSystem
 
 # 初始化Pygame
 pygame.init()
