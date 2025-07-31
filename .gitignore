@@ -1,4 +1,8 @@
 __pycache__/
 .vscode/
-.venv/
+.venv*/
 *.txt
+ai/models/
+.cache/
+*.zip
+*.tar.gz

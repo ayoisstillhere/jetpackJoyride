@@ -55,11 +55,12 @@ class Rocket:
         if not self.active or not self.render or not self.rocket_img:
             return
 
+        ix, iy = int(self.x), int(self.y)
         if self.mode == 0:
-            pygame.draw.rect(screen, 'dark red', [self.x - 60, self.y - 25, 50, 50], 0, 5)
-            screen.blit(font.render('!', True, 'black'), (self.x - 40, self.y - 20))
+            pygame.draw.rect(screen, 'dark red', [ix - 60, iy - 25, 50, 50], 0, 5)
+            screen.blit(font.render('!', True, 'black'), (ix - 40, iy - 20))
         else:
-            screen.blit(self.rocket_img, (self.x, self.y - 10))
+            screen.blit(self.rocket_img, (ix, iy - 10))
 
     def get_hitbox(self):
         """
@@ -67,4 +68,4 @@ class Rocket:
         """
         if not self.active or self.mode != 1:
             return None
-        return pygame.Rect(self.x, self.y - 10, 100, 30)
+        return pygame.Rect(int(self.x), int(self.y) - 10, 100, 30)

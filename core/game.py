@@ -1,20 +1,19 @@
 import pygame
 import random, os
+from typing import Callable, Optional
 
-from ai import RuleBasedAgent
 from config.settings import WIDTH, HEIGHT, FPS, BG_COLOR, FONT_PATH
 from core.state import GameState
 from core.events import handle_events
 from systems.meteor_system import MeteorSystem
 from systems.ui import draw_screen
-from systems.physics import apply_gravity, update_vertical_position, check_platform_collisions
+from systems.physics import check_platform_collisions
 from entities.player import Player
 from entities.rocket import Rocket
 from entities.laser import Laser
-from entities.coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
-from entities.meteor import Meteor
-from background_system import BackgroundSystem
-from difficulty_system import DifficultySystem
+from entities.coin import spawn_coins, update_coins, draw_coins, draw_coin_counter
+from systems.background_system import BackgroundSystem
+from systems.difficulty_system import DifficultySystem
 
 class GameStates:
     START = "start"
@@ -24,9 +23,10 @@ class GameStates:
     CHARACTER_SELECT = "character_select"
 
 class Game:
-    def __init__(self, render=True):
+    def __init__(self, render=True, mode="progressive"):
         pygame.init()
         self.render = render
+        self.mode = mode
 
         if self.render:
             self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -39,6 +39,9 @@ class Game:
         self.font = pygame.font.Font(FONT_PATH, 32)
         self.title_font = pygame.font.Font(FONT_PATH, 64)
         self.small_font = pygame.font.Font(FONT_PATH, 24)
+        self.laser_rect = pygame.Rect(0, 0, 0, 0)
+        self.top_plat = pygame.Rect(0, 0, WIDTH, 10)
+        self.bot_plat = pygame.Rect(0, HEIGHT - 10, WIDTH, 10)
 
         # Core state
         self.state = GameState()
@@ -62,7 +65,7 @@ class Game:
         # Coin system
         self.coins = []
         self.last_coin_spawn = 0
-        self.coin_spawn_distance = 400
+        self.coin_spawn_distance = 150
 
         # Meteor system
         self.meteor_system = MeteorSystem()
@@ -75,8 +78,8 @@ class Game:
         self.back_button = None
 
         # AI
-        self.agent = RuleBasedAgent()
         self.player.controlled_by_ai = False
+        self.act_with_model: Optional[Callable[[], None]] = None
 
         self.running = True
 
@@ -190,7 +193,6 @@ class Game:
 
         # Instructions
         instructions = [
-            "Use SPACE to boost your jetpack",
             "Collect coins and avoid obstacles",
             "Press SPACE or click START to begin",
             "Press C or click CHARACTER to choose character"
@@ -218,7 +220,7 @@ class Game:
 
         # High score display
         if self.state.high_score > 0:
-            high_score_text = self.font.render(f"High Score: {int(self.state.high_score)}", True, 'yellow')
+            high_score_text = self.font.render(f"Global Highest Score: {int(self.state.high_score)}", True, 'yellow')
             high_score_rect = high_score_text.get_rect(center=(WIDTH//2, HEIGHT - 50))
             self.screen.blit(high_score_text, high_score_rect)
 
@@ -360,6 +362,9 @@ class Game:
         )
 
         # === Update ===
+        if self.act_with_model is not None and self.player.controlled_by_ai:
+            self.act_with_model()
+
         if not self.state.paused:
             self._update_game_logic()
 
@@ -398,45 +403,24 @@ class Game:
         self.background_system.reset()
         self.background_system.update_by_distance(0)
 
+        spawn_coins(self.coins, pattern='horiz')
+        self.last_coin_spawn = self.state.distance
+
+
     def _update_game_logic(self):
         if not self.state.paused:
             # Update difficulty
             if self.difficulty_system.update(self.state.distance):
-                # Update the background if the difficulty level changes
                 self.background_system.update_by_distance(self.state.distance)
 
-            # Update game speed based on difficulty
             game_speed = self.difficulty_system.game_speed
-
-            # Update background
             self.background_system.update(pause=False, distance=self.state.distance, game_speed=game_speed)
-
-            # Update other game elements with the new speed
             self.state.distance += game_speed
 
-            # Animation + Distance
             self.player.update_animation()
-
-            # meteor updates
             self._update_meteors()
 
-        # === AI Decision ===
-        if self.player.controlled_by_ai:
-            game_obs = {
-                "player_y": self.player.y,
-                "player": self.player,
-                "laser": self.laser_rect,
-                "rocket": self.rocket.get_hitbox(),
-                "coins": [coin.rect for coin in self.coins],
-            }
-            action = self.agent.decide(game_obs)
-            print(f"AI action: {action}")
-
-            self.player.booster = (action == "jump")
-            if action == "jump":
-                self.player.booster_duration = self.player.max_booster_duration
-
-        # Coin spawning
+        # Coin spawning (skip in fixed mode)
         if self.state.distance - self.last_coin_spawn > self.coin_spawn_distance:
             spawn_coins(self.coins)
             self.last_coin_spawn = self.state.distance
@@ -456,12 +440,11 @@ class Game:
         if self.laser.is_offscreen():
             self.laser = Laser()
 
-        # Physics
-        apply_gravity(self.player)
-        self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
-        update_vertical_position(self.player, self.top_hit, self.bot_hit)
+        # update laser_rect even without render
+        self.laser_rect = self.laser.get_hitbox() if hasattr(self.laser, "get_hitbox") else pygame.Rect(0, 0, 0, 0)
 
         # Update player position (including horizontal movement)
+        self.top_hit, self.bot_hit = check_platform_collisions(self.player.get_hitbox(), self.top_plat, self.bot_plat)
         self.player.update_position(self.top_hit, self.bot_hit)
 
         # Collision
@@ -547,3 +530,4 @@ class Game:
             self._trigger_game_over()
             return True
         return False
+
