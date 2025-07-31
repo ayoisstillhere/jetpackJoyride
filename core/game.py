@@ -7,14 +7,13 @@ from core.state import GameState
 from core.events import handle_events
 from systems.meteor_system import MeteorSystem
 from systems.ui import draw_screen
-from systems.physics import apply_gravity, update_vertical_position, check_platform_collisions
+from systems.physics import check_platform_collisions
 from entities.player import Player
 from entities.rocket import Rocket
 from entities.laser import Laser
-from entities.coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
-from entities.meteor import Meteor
-from background_system import BackgroundSystem
-from difficulty_system import DifficultySystem
+from entities.coin import spawn_coins, update_coins, draw_coins, draw_coin_counter
+from systems.background_system import BackgroundSystem
+from systems.difficulty_system import DifficultySystem
 
 class GameStates:
     START = "start"
@@ -66,7 +65,7 @@ class Game:
         # Coin system
         self.coins = []
         self.last_coin_spawn = 0
-        self.coin_spawn_distance = 100
+        self.coin_spawn_distance = 150
 
         # Meteor system
         self.meteor_system = MeteorSystem()

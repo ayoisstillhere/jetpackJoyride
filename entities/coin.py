@@ -37,11 +37,10 @@ def spawn_coins(coins, pattern=None):
     """
     y_min, y_max = 80, HEIGHT - 80
     x = WIDTH + 40
-    # removed patterns to test 'diag_up', 'diag_down', 'circle'
 
     if pattern is None:
         pattern = random.choice([
-            'single', 'horiz', 'vert', 'cluster',
+            'single', 'horiz', 'vert', 'cluster', 'diag_up', 'diag_down', 'circle'
         ])
 
     if pattern == 'single':
@@ -105,7 +104,7 @@ def update_coins(coins, state, player_hitbox, paused, speed):
         if coin.x < -coin.radius:
             to_remove.append(coin)
         elif player_hitbox.colliderect(coin.rect):
-            # print(f"------------------- COLLISION! Player: {player_hitbox}, Coin: {coin.rect}")
+            print(f"------------------- COLLISION! Player: {player_hitbox}, Coin: {coin.rect}")
             state.coin_count += coin.value
             to_remove.append(coin)
 

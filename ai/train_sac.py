@@ -24,7 +24,6 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # === Imports ===
-import gymnasium as gym
 from stable_baselines3 import SAC
 from stable_baselines3.common.env_checker import check_env
 from ai.jetpack_env import JetpackEnv
@@ -39,6 +38,13 @@ print(f"Mode: {mode}, Timesteps: {total_timesteps}, Experiment: {exp_name}")
 
 # ========== CALLBACK ==========
 class CustomTensorboardCallback(BaseCallback):
+    """
+    Custom callback for logging additional metrics to TensorBoard.
+
+    This callback reads information from the `info` dictionary returned by the environment
+    and records metrics related to curriculum stage, coins, survival, shooting, penalties,
+    and distances.
+    """
     def __init__(self, verbose=0):
         super().__init__(verbose)
 
@@ -75,7 +81,7 @@ class CustomTensorboardCallback(BaseCallback):
 
 class CurriculumCheckpointCallback(BaseCallback):
     """
-    Callback que salva o modelo sempre que o curriculum_stage mudar.
+    Callback that saves a model checkpoint every time the curriculum stage changes.
     """
     def __init__(self, save_path="./ai/models/", verbose=1, exp_name=""):
         super().__init__(verbose)

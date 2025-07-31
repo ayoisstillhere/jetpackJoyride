@@ -6,7 +6,7 @@ ground_offset = 0
 
 def draw_screen(screen, surface, font, bg_color, lines, laser_obj, distance, high_score, pause, game_speed):
     global ground_offset
-    
+
     # no fill black background, because background system has already drawn the background
     pygame.draw.rect(surface, (*bg_color, 50), [0, 0, WIDTH, HEIGHT])
     screen.blit(surface, (0, 0))
@@ -16,17 +16,17 @@ def draw_screen(screen, surface, font, bg_color, lines, laser_obj, distance, hig
         ground_img = pygame.image.load("assets/ground.png").convert_alpha()
         ground_height = 50  # Keep the same height as before
         ground_img = pygame.transform.scale(ground_img, (ground_img.get_width(), ground_height))
-        
+
         # Calculate how many times we need to tile the image
         ground_width = ground_img.get_width()
         num_tiles = WIDTH // ground_width + 2  # +2 to ensure full coverage during scrolling
-        
+
         # Update ground offset if not paused
         if not pause:
             ground_offset -= game_speed
             if ground_offset <= -ground_width:
                 ground_offset = 0
-        
+
         # Draw top and bottom ground
         for i in range(num_tiles):
             # Calculate position with offset

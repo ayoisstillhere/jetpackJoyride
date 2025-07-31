@@ -28,7 +28,7 @@ def draw_info():
     type_text = font.render(f"背景类型: {bg_system.current_background_type}", True, (255, 255, 255))
     distance_text = font.render(f"距离: {distance:.0f}m", True, (255, 255, 255))
     help_text = font.render("按键: Space-暂停 ESC-退出", True, (255, 255, 255))
-    
+
     screen.blit(theme_text, (10, 10))
     screen.blit(type_text, (10, 50))
     screen.blit(distance_text, (10, 90))
@@ -58,7 +58,7 @@ while running:
 
     # 绘制背景
     bg_system.draw_background(screen, pause=paused)
-    
+
     # 显示信息
     draw_info()
 
@@ -70,4 +70,4 @@ while running:
 
 # 退出游戏
 pygame.quit()
-sys.exit() 
+sys.exit()
