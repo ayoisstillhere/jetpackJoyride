@@ -3,3 +3,6 @@ __pycache__/
 .venv*/
 *.txt
 ai/models/
+.cache/
+*.zip
+*.tar.gz
