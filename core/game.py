@@ -9,11 +9,11 @@ from systems.ui import draw_screen
 from systems.physics import apply_gravity, update_vertical_position, check_platform_collisions
 from entities.player import Player
 from entities.rocket import Rocket
-from entities.laser import Laser
 from entities.coin import Coin, spawn_coins, update_coins, draw_coins, draw_coin_counter
 from entities.meteor import Meteor
 from background_system import BackgroundSystem
 from difficulty_system import DifficultySystem
+# from entities.laser import Laser  # 删除
 
 class GameStates:
     START = "start"
@@ -44,13 +44,13 @@ class Game:
         self.game_state = GameStates.START
 
         # Game systems
-        self.background_system = BackgroundSystem(WIDTH, HEIGHT)
+        self.background_system = BackgroundSystem(WIDTH, HEIGHT, render=self.render)
         self.difficulty_system = DifficultySystem()
 
         # Game elements
         self.player = Player(render=self.render)
         self.rocket = Rocket(render=self.render)
-        self.laser = Laser(render=self.render)
+        self.rocket.active = True  # 开局激活火箭
         self.lines = [0, WIDTH/4, WIDTH/2, 3*WIDTH/4]
         self.bg_color = BG_COLOR
 
@@ -60,11 +60,11 @@ class Game:
 
         # Coin system
         self.coins = []
-        self.last_coin_spawn = 0
-        self.coin_spawn_distance = 200
+        self.coin_spawn_timer = 0
+        self.coin_spawn_delay = 120
 
         # Meteor system
-        self.meteor_system = MeteorSystem()
+        self.meteor_system = MeteorSystem(render=self.render)
 
         # UI buttons
         self.start_button = None
@@ -78,7 +78,9 @@ class Game:
 
         self.running = True
 
-        self.curriculum_stage = 3  # 新增，默认第三阶段
+        # self.curriculum_stage = 3  # 删除课程训练相关
+        # 删除self.slide_barriers、self.slide_barrier_spawn_timer、self.slide_barrier_spawn_delay相关初始化
+        # 删除self.laser相关初始化、重置
 
     def run(self):
         while self.running:
@@ -346,17 +348,17 @@ class Game:
         self.background_system.draw_background(self.screen, self.state.paused, self.difficulty_system.game_speed)
 
         # === Draw Game ===
-        self.lines, self.top_plat, self.bot_plat, self.laser.points, self.laser_rect = draw_screen(
+        self.lines, self.top_plat, self.bot_plat = draw_screen(
             screen=self.screen,
             surface=self.surface,
             font=self.font,
             bg_color=self.bg_color,
             lines=self.lines,
-            laser_obj=self.laser,
             distance=self.state.distance,
             high_score=self.state.high_score,
             pause=self.state.paused,
-            game_speed=self.difficulty_system.game_speed
+            game_speed=self.difficulty_system.game_speed,
+            render=self.render
         )
 
         # === Update ===
@@ -389,9 +391,12 @@ class Game:
         self.state.reset()
         self.player.reset()
         self.rocket.reset()
-        self.laser.reset()
+        self.rocket.active = True  # 重置时激活火箭
         self.coins = []
+        self.coin_spawn_timer = 0
+        self.coin_spawn_delay = 120
         self.meteor_system.clear_meteors()
+        # 删除self.laser相关初始化、重置
 
         # Reset systems
         self.difficulty_system.reset()
@@ -405,55 +410,34 @@ class Game:
         if not self.state.paused:
             # Update difficulty
             if self.difficulty_system.update(self.state.distance):
-                # Update the background if the difficulty level changes
                 self.background_system.update_by_distance(self.state.distance)
 
-            # Update game speed based on difficulty
             game_speed = self.difficulty_system.game_speed
-
-            # Update background
             self.background_system.update(pause=False, distance=self.state.distance, game_speed=game_speed)
-
-            # Update other game elements with the new speed
             self.state.distance += game_speed
-
-            # Animation + Distance
             self.player.update_animation()
 
-            # 按阶段生成障碍物
-            if self.curriculum_stage == 1:
-                # 只激光
-                self.laser.update(self.difficulty_system.game_speed)
-                if self.laser.is_offscreen():
-                    self.laser = Laser()
-                # 不生成火箭和陨石
-            elif self.curriculum_stage == 2:
-                # 只陨石
-                self._update_meteors()
-                # 不生成激光和火箭
-            else:
-                # 全部生成
-                self._update_meteors()
-                # Rocket
-                if not self.rocket.active:
-                    self.rocket.counter += 1
-                    if self.rocket.counter > 180:
-                        self.rocket.activate()
-                self.rocket.update(self.player.y, self.state.paused, self.difficulty_system.game_speed)
-                # Laser
-                self.laser.update(self.difficulty_system.game_speed)
-                if self.laser.is_offscreen():
-                    self.laser = Laser()
+            # 只在没有陨石时才生成新陨石
+            if self.meteor_system.get_meteor_count() == 0:
+                self.meteor_system.spawn_meteor(self.player)
+            # Rocket
+            if not self.rocket.active:
+                self.rocket.counter += 1
+                if self.rocket.counter > 180:
+                    self.rocket.activate()
+            self.rocket.update(self.player.y, self.state.paused, self.difficulty_system.game_speed)
+            # 删除激光碰撞检测
 
             # meteor updates
             self._update_meteors()
+
+            # 删除_slide_barrier生成、更新、移除、碰撞检测相关代码
 
         # === AI Decision ===
         if self.player.controlled_by_ai:
             game_obs = {
                 "player_y": self.player.y,
                 "player": self.player,
-                "laser": self.laser.get_hitbox(),
                 "rocket": self.rocket.get_hitbox(),
                 "coins": [coin.rect for coin in self.coins],
             }
@@ -464,10 +448,18 @@ class Game:
             if False:
                 self.player.booster_duration = self.player.max_booster_duration
 
-        # 连续金币生成逻辑
-        rightmost_x = max([coin.x for coin in self.coins], default=0)
-        if not self.coins or (rightmost_x < WIDTH - 200):
-            spawn_coins(self.coins, render=self.render)
+        # 金币生成逻辑：场上最多3个，吃了后延迟重新生成
+        if not hasattr(self, 'coin_spawn_timer'):
+            self.coin_spawn_timer = 0
+            self.coin_spawn_delay = 120  # 2秒延迟（60FPS）
+        
+        # 检查是否需要生成新金币
+        if len(self.coins) < 3:
+            self.coin_spawn_timer += 1
+            if self.coin_spawn_timer >= self.coin_spawn_delay:
+                spawn_coins(self.coins, render=self.render)
+                self.coin_spawn_timer = 0
+                self.coin_spawn_delay = random.randint(180, 300)  # 3-5秒随机延迟
 
         update_coins(self.coins, self.state, self.player.get_hitbox(), self.state.paused, self.difficulty_system.game_speed)
 
@@ -484,19 +476,22 @@ class Game:
         self.player.update_position(self.top_hit, self.bot_hit)
 
         # Collision
-        # 只在第三阶段检测火箭碰撞
-        if self.curriculum_stage == 3:
-            rocket_rect = self.rocket.get_hitbox()
-            if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
-                self._trigger_game_over()
-        # 只在第一、三阶段检测激光碰撞
-        if self.curriculum_stage in [1, 3]:
-            laser_box = self.laser.get_hitbox()
-            if laser_box and laser_box.colliderect(self.player.get_hitbox()):
-                self._trigger_game_over()
-        # 只在第二、三阶段检测陨石碰撞
-        if self.curriculum_stage in [2, 3]:
-            self._check_meteor_collisions()
+        # 直接始终检测所有障碍物碰撞
+        rocket_rect = self.rocket.get_hitbox()
+        if rocket_rect and rocket_rect.colliderect(self.player.get_hitbox()):
+            self._trigger_game_over()
+        self._check_meteor_collisions()
+        # 删除SlideBarrier碰撞检测
+        # for barrier in self.slide_barriers:
+        #     if barrier.get_hitbox().colliderect(self.player.get_hitbox()):
+        #         if getattr(self.player, 'sliding', False):
+        #             # 只有碰撞到gap_rect才安全
+        #             if not barrier.get_gap_rect().colliderect(self.player.get_hitbox()):
+        #                 self._trigger_game_over()
+        #                 break
+        #         else:
+        #             self._trigger_game_over()
+        #             break
 
         # Background color variation
         if self.state.distance % 500 == 0:
@@ -528,6 +523,7 @@ class Game:
         for projectile in self.state.projectiles:
             projectile.draw(self.screen)
         self.meteor_system.draw_meteors(self.screen)
+        # 删除if self.laser.active: self.laser.draw(self.screen)
 
     def _draw_pause_menu(self):
         pygame.draw.rect(self.surface, (128, 128, 128, 150), [0, 0, WIDTH, HEIGHT])
@@ -546,7 +542,6 @@ class Game:
         self.state.reset_run()
         self.player.reset()
         self.rocket.reset()
-        self.laser = Laser()
         self.coins.clear()
         self.last_coin_spawn = 0
         self.bg_color = BG_COLOR
@@ -556,10 +551,8 @@ class Game:
         return self.difficulty_system.game_speed
 
     def _update_meteors(self):
-        """Update meteor system"""
         if not self.state.paused:
             self.meteor_system.update_difficulty(self.state.distance)
-            self.meteor_system.spawn_meteor()
             self.meteor_system.update_meteors(self.state.paused, self.difficulty_system.game_speed)
 
     def _check_meteor_collisions(self):
@@ -570,6 +563,3 @@ class Game:
             self._trigger_game_over()
             return True
         return False
-
-    def set_curriculum_stage(self, stage):
-        self.curriculum_stage = stage

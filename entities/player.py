@@ -5,12 +5,16 @@ from entities.projectiles import Projectile
 
 class Player:
     def __init__(self, start_x=120, start_y=PLAYER_INIT_Y, character_type="boy", render=True):
-        self.x = start_x
+        # 三车道x坐标
+        from config.settings import WIDTH
+        self.lane_positions = [int(WIDTH * 0.3), int(WIDTH * 0.5), int(WIDTH * 0.7)]
+        self.lane = 1  # 0=左, 1=中, 2=右
+        self.x = self.lane_positions[self.lane]
         self.y = start_y
         self.width = 48
         self.height = 60
         self.velocity_y = 0
-        self.gravity = 0.6
+        self.gravity = 0.09
         self.counter = 0  # frame index control
         self.booster = False
         self.controlled_by_ai = False
@@ -19,8 +23,13 @@ class Player:
         self.character_type = character_type
         self.move_left = False
         self.move_right = False
-        self.horizontal_speed = 5
+        self.height = 60
+        self.horizontal_speed = 5  # 不再直接用
         self.can_shoot = True
+        self.velocity_y = 0
+        self.jump_count = 0
+        self.max_jumps = 2  # 二连跳
+        self.jump_power = 8  # 跳跃初速度，降低高度
         self.shoot_cooldown = 0.5  # 0.5 seconds cooldown
         self.last_shot_time = 0
 
@@ -104,21 +113,34 @@ class Player:
     def update_animation(self):
         self.counter = (self.counter + 1) % (6 * len(self.run_frames))
 
-    def update_position(self, colliding_top, colliding_bottom):
-        # Handle vertical collisions and update vertical velocity
-        if (colliding_bottom and self.velocity_y > 0) or (colliding_top and self.velocity_y < 0):
-            self.velocity_y = 0
-        self.y += self.velocity_y
+    def jump(self):
+        if self.jump_count < self.max_jumps:
+            self.velocity_y = -self.jump_power
+            self.jump_count += 1
 
-        # Handle horizontal movement with boundary checks
+    def update_position(self, colliding_top, colliding_bottom):
+        # 只处理车道切换，y坐标和velocity_y交给物理系统
         if self.move_left:
-            self.x = max(0, self.x - self.horizontal_speed)
+            if self.lane > 0:
+                self.lane -= 1
+                self.x = self.lane_positions[self.lane]
+            self.move_left = False  # 只切换一次
         if self.move_right:
-            self.x = min(WIDTH - self.width, self.x + self.horizontal_speed)
+            if self.lane < 2:
+                self.lane += 1
+                self.x = self.lane_positions[self.lane]
+            self.move_right = False  # 只切换一次
+        # 落地时重置跳跃计数
+        from config.settings import HEIGHT
+        ground_y = HEIGHT - 50 - self.height
+        if abs(self.y - ground_y) < 2 and self.velocity_y >= 0:
+            self.jump_count = 0
 
     def reset(self):
-        self.x = 120
-        self.y = PLAYER_INIT_Y
+        from config.settings import HEIGHT
+        self.lane = 1  # 中间
+        self.x = self.lane_positions[self.lane]
+        self.y = HEIGHT - self.height  # 地面高度
         self.velocity_y = 0
         self.counter = 0
         self.booster = False

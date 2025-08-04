@@ -20,8 +20,8 @@ def handle_events(state, player, restart_button=None, quit_button=None, events=N
             if event.key == pygame.K_ESCAPE:
                 state.paused = not state.paused
 
-            if event.key == pygame.K_w and not state.paused and not getattr(player, 'controlled_by_ai', False):
-                player.booster = True
+            if event.key in [pygame.K_w, pygame.K_SPACE] and not state.paused and not getattr(player, 'controlled_by_ai', False):
+                player.jump()
 
             if event.key == pygame.K_t:
                 player.controlled_by_ai = not getattr(player, 'controlled_by_ai', False)
@@ -39,8 +39,6 @@ def handle_events(state, player, restart_button=None, quit_button=None, events=N
                     # state.projectiles.append(projectile)
 
         if event.type == pygame.KEYUP:
-            if event.key == pygame.K_w and not getattr(player, 'controlled_by_ai', False):
-                player.booster = False
             if event.key == pygame.K_a and not getattr(player, 'controlled_by_ai', False):
                 player.move_left = False
             if event.key == pygame.K_d and not getattr(player, 'controlled_by_ai', False):

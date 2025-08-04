@@ -1,12 +1,13 @@
 from config.settings import HEIGHT, WIDTH
 import random, math
 import pygame
+import numpy as np
 
 class Coin:
     def __init__(self, x, y, render=True):
         self.x = x
         self.y = y
-        self.radius = 10
+        self.radius = 30  # 金币更大
         import pygame
         if render:
             self.image = pygame.transform.scale(
@@ -26,14 +27,27 @@ class Coin:
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
-def spawn_coins(coins, pattern=None, render=False):
-    """
-    每200像素生成一个金币，y坐标随机。
-    """
-    y_min, y_max = 80, HEIGHT - 80
-    x = WIDTH + 40
-    y = random.randint(y_min, y_max)
-    coins.append(Coin(x, y, render=render))
+def spawn_coins(coins, render=True):
+    from config.settings import WIDTH, HEIGHT
+    from core.game import Game
+    lane_positions = [int(WIDTH * 0.3), int(WIDTH * 0.5), int(WIDTH * 0.7)]
+    max_coins = 3 - len(coins)
+    # 获取当前玩家y坐标
+    try:
+        game = Game(render=False)
+        player_y = game.player.y
+    except:
+        player_y = HEIGHT - 60  # 默认地面高度
+    for _ in range(max_coins):
+        lane = 2  # 最右侧车道
+        x = lane_positions[lane]
+        # y在玩家头顶上方一段距离
+        y_min = max(0, int(player_y - 150))
+        y_max = max(0, int(player_y - 50))
+        if y_min >= y_max:
+            y_min, y_max = 0, 120
+        y = np.random.randint(y_min, y_max)
+        coins.append(Coin(x, y, render=render))
 
 def update_coins(coins, state, player_hitbox, paused, speed):
     """

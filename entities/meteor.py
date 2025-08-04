@@ -3,7 +3,14 @@ import random
 from config.settings import WIDTH, HEIGHT
 
 class Meteor:
-    def __init__(self, x=None, y=None):
+    def __init__(self, render=True, x=None, y=None):
+        self.render = render
+        if render:
+            self.image = pygame.image.load('assets/flame.png').convert_alpha()
+            self.rect = self.image.get_rect()
+        else:
+            self.image = None
+            self.rect = pygame.Rect(0, 0, 40, 40)  # 设定一个默认hitbox
         # Position
         self.x = x if x is not None else random.randint(50, WIDTH - 50)
         self.y = y if y is not None else -50  # Start above screen

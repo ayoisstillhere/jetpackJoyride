@@ -6,16 +6,13 @@ class Rocket:
         self.reset()
         self.render = render
 
-        if self.render:
-            self.rocket_img = pygame.transform.flip(
-                pygame.transform.scale(
-                    pygame.image.load("assets/rocket.png").convert_alpha(),
-                    (100, 30)
-                ),
-                True, False
-            )
+        if render:
+            self.image = pygame.image.load('assets/rocket.png').convert_alpha()
+            self.image = pygame.transform.scale(self.image, (100, 30))  # 缩放到100x30像素
+            self.rect = self.image.get_rect()
         else:
-            self.rocket_img = None
+            self.image = None
+            self.rect = pygame.Rect(0, 0, 60, 20)  # 设定一个默认hitbox
 
     def reset(self):
         self.x = WIDTH
@@ -52,14 +49,14 @@ class Rocket:
             self.reset()
 
     def draw(self, screen, font):
-        if not self.active or not self.render or not self.rocket_img:
+        if not self.active or not self.render or not self.image:
             return
 
         if self.mode == 0:
             pygame.draw.rect(screen, 'dark red', [self.x - 60, self.y - 25, 50, 50], 0, 5)
             screen.blit(font.render('!', True, 'black'), (self.x - 40, self.y - 20))
         else:
-            screen.blit(self.rocket_img, (self.x, self.y - 10))
+            screen.blit(self.image, (self.x, self.y - 10))
 
     def get_hitbox(self):
         """

@@ -5,9 +5,10 @@ from entities.portal import Portal
 from config.settings import WIDTH, HEIGHT
 
 class BackgroundSystem:
-    def __init__(self, width, height):
+    def __init__(self, width, height, render=True):
         self.WIDTH = width
         self.HEIGHT = height
+        self.render = render
 
         # Scene configuration
         self.SCENE_CHANGE_DISTANCE = 2000
@@ -36,7 +37,8 @@ class BackgroundSystem:
         self.current_background_type = 'space'
 
         # Load background images
-        self.load_background_images()
+        if self.render:
+            self.load_background_images()
 
     def _initialize_theme_structure(self):
         """Initialize the theme structure with empty layers"""
@@ -77,7 +79,7 @@ class BackgroundSystem:
     def _load_theme_images(self, theme_folder, layer_files, theme_key, layer_dict):
         """Load images for a specific theme and its layers"""
         if not os.path.exists(theme_folder):
-            print(f"Theme folder not found: {theme_folder}")
+            # print(f"Theme folder not found: {theme_folder}")
             return
 
         for layer, filename in layer_files.items():
@@ -87,15 +89,17 @@ class BackgroundSystem:
                     img = pygame.image.load(file_path).convert_alpha()
                     img = pygame.transform.scale(img, (self.WIDTH, self.HEIGHT))
                     self.background_themes[theme_key][layer_dict][layer] = img
-                    print(f"Successfully loaded {layer} layer: {filename}")
+                    # print(f"Successfully loaded {layer} layer: {filename}")
                 except pygame.error as e:
-                    print(f"Failed to load image {file_path}: {e}")
+                    # print(f"Failed to load image {file_path}: {e}")
+                    pass
             else:
-                print(f"Missing layer file: {file_path}")
+                # print(f"Missing layer file: {file_path}")
+                pass
 
     def load_background_images(self):
         """Load all background images for different themes"""
-        print("Start loading background images...")
+        # print("Start loading background images...")
 
         # Load space theme
         space_folder = os.path.join("backgrounds", "space_background_pack")
@@ -147,9 +151,11 @@ class BackgroundSystem:
 
         # Verify loading success
         if not any(any(layers.values()) for theme in self.background_themes.values() for layers in theme.values()):
-            print("Warning: No background images were loaded successfully!")
+            # print("Warning: No background images were loaded successfully!")
+            pass
         else:
-            print("Background loading completed!")
+            # print("Background loading completed!")
+            pass
 
     def update_layer_positions(self, game_speed):
         if self.current_background_type == 'space':
@@ -232,7 +238,7 @@ class BackgroundSystem:
                 self.current_background_type = random.choice(['space', 'another-world', 'land'])
             else:  # THEME_NATURE
                 self.current_background_type = random.choice(['forest', 'mountain'])
-            print(f"Switching theme to: {new_theme} ({self.current_background_type})")
+            # print(f"Switching theme to: {new_theme} ({self.current_background_type})")
 
     def change_background_type(self, new_type):
         if new_type in ['space', 'another-world', 'land', 'forest', 'mountain']:
@@ -241,7 +247,7 @@ class BackgroundSystem:
             else:
                 self.current_theme = self.THEME_NATURE
             self.current_background_type = new_type
-            print(f"Switching background type to: {new_type}")
+            # print(f"Switching background type to: {new_type}")
 
     def update(self, pause=False, distance=None, game_speed=3, player_rect=None):
         """Update background state"""
@@ -256,29 +262,25 @@ class BackgroundSystem:
 
             # debug information output
             if int(distance) % 100 == 0:  # print info every 100 meters
-                print(f"Current distance: {distance:.1f}m")
-                print(f"Next change point: {next_change_point}m")
-                print(f"Distance to change: {distance_to_change:.1f}m")
-                print(f"Portal status: {'active' if self.portal.active else 'inactive'}")
-                print(f"Portal trigger status: {'triggered' if self.portal.triggered else 'not triggered'}")
+                pass
 
             # force close portal conditions
             if distance_to_change > self.portal_activation_distance + 100:  # when far from change point
                 if self.portal.active or self.portal.triggered:  # if portal is still active
-                    print(f"Force closing portal and resetting state")
+                    # print(f"Force closing portal and resetting state")
                     self.portal.reset()
                     self.portal.x = self.WIDTH - 300
                     self.portal.y = self.HEIGHT//2 - 150
 
             # handle portal appearance
             elif distance_to_change <= self.portal_activation_distance and not self.portal.active:
-                print(f"=== Portal Trigger Condition Check ===")
-                print(f"Distance to change point: {distance_to_change:.1f} <= {self.portal_activation_distance}")
-                print(f"Current total distance: {distance:.1f}")
-                print(f"Portal current status: {self.portal.active}")
-                print(f"Portal triggered status: {self.portal.triggered}")
+                # print(f"=== Portal Trigger Condition Check ===")
+                # print(f"Distance to change point: {distance_to_change:.1f} <= {self.portal_activation_distance}")
+                # print(f"Current total distance: {distance:.1f}")
+                # print(f"Portal current status: {self.portal.active}")
+                # print(f"Portal triggered status: {self.portal.triggered}")
 
-                print(f"Portal appears! Remaining distance: {distance_to_change:.1f}m")
+                # print(f"Portal appears! Remaining distance: {distance_to_change:.1f}m")
                 self.portal.activate()
                 # ensure portal appears from right side
                 self.portal.x = self.WIDTH - 300
@@ -292,13 +294,13 @@ class BackgroundSystem:
                 if player_rect and not self.portal.triggered:
                     portal_rect = self.portal.get_rect()
                     if portal_rect.colliderect(player_rect):
-                        print("Player hit portal! Preparing scene change...")
+                        # print("Player hit portal! Preparing scene change...")
                         self.portal.triggered = True
                         new_sequence_index = current_section % len(self.background_sequence)
                         if new_sequence_index != self.current_sequence_index:
                             self.current_sequence_index = new_sequence_index
                             new_background = self.background_sequence[self.current_sequence_index]
-                            print(f"Through portal! Switching background to: {new_background}, current distance: {distance}m")
+                            # print(f"Through portal! Switching background to: {new_background}, current distance: {distance}m")
                             self.change_background_type(new_background)
                             self.portal.deactivate()
                             # ensure portal is fully reset
@@ -317,7 +319,7 @@ class BackgroundSystem:
         if new_sequence_index != self.current_sequence_index:
             self.current_sequence_index = new_sequence_index
             new_background = self.background_sequence[self.current_sequence_index]
-            print(f"Switching background to: {new_background}, current distance: {distance}m")
+            # print(f"Switching background to: {new_background}, current distance: {distance}m")
             self.change_background_type(new_background)
 
         self.current_distance = distance

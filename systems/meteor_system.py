@@ -3,7 +3,8 @@ import random
 from entities.meteor import Meteor
 
 class MeteorSystem:
-    def __init__(self):
+    def __init__(self, render=True):
+        self.render = render
         self.meteors = []
         self.last_spawn_time = 0
         self.spawn_interval = 2000  # 2 seconds in milliseconds
@@ -31,13 +32,18 @@ class MeteorSystem:
         current_time = pygame.time.get_ticks()
         return current_time >= self.next_spawn_time
     
-    def spawn_meteor(self):
-        """Spawn a new meteor at a random position, only if no meteors are present"""
+    def spawn_meteor(self, player=None):
+        """Spawn a new meteor at player's头顶（车道x），只有没有陨石时才生成"""
         if len(self.meteors) == 0 and self.should_spawn():
-            # Create new meteor
-            new_meteor = Meteor()
-            self.meteors.append(new_meteor)
-            # Set next spawn time
+            if player is not None:
+                # 取玩家当前车道x
+                from config.settings import WIDTH
+                lane_positions = [int(WIDTH * 0.3), int(WIDTH * 0.5), int(WIDTH * 0.7)]
+                x = lane_positions[getattr(player, 'lane', 1)]
+                meteor = Meteor(render=self.render, x=x)
+            else:
+                meteor = Meteor(render=self.render)
+            self.meteors.append(meteor)
             self.next_spawn_time = self._calculate_next_spawn_time()
             return True
         return False

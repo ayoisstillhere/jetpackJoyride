@@ -2,18 +2,22 @@ import pygame
 from config.settings import WIDTH
 
 class Projectile:
-    def __init__(self, x, y):
+    def __init__(self, x, y, direction=1, speed=12):
+        import pygame
         self.x = x
         self.y = y
-        self.speed = 10  # adjust as necessary
+        self.width = 10
+        self.height = 5
+        self.direction = direction
+        self.speed = speed
         self.active = True
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def update(self):
-        if self.active:
-            self.x += self.speed
-            # Add logic to remove the projectile if it goes off-screen
-            if self.x > WIDTH:
-                self.active = False
+        self.x += self.speed * self.direction
+        self.rect.x = self.x
+        self.rect.y = self.y
+        # 失效判定等其它逻辑...
 
     def draw(self, surface):
         if self.active:
@@ -21,15 +25,11 @@ class Projectile:
 
 
     def collides_with(self, other):
-        # Ensure that self.x and self.y are numeric
-        assert isinstance(self.x, (int, float)), f"self.x is not numeric: {self.x}"
-        assert isinstance(self.y, (int, float)), f"self.y is not numeric: {self.y}"
-
-        projectile_rect = pygame.Rect(self.x, self.y, 10, 5)  # Ensure that these dimensions are correct
-        other_rect = other.get_hitbox()
-
-        # Make sure that other_rect is a pygame.Rect with numeric values
-        assert isinstance(other_rect, pygame.Rect), f"other_rect is not a pygame.Rect: {other_rect}"
-        assert all(isinstance(value, (int, float)) for value in other_rect), f"other_rect values are not all numeric: {other_rect}"
-
-        return projectile_rect.colliderect(other_rect)
+        import pygame
+        if hasattr(other, 'get_hitbox'):
+            other_rect = other.get_hitbox()
+        elif isinstance(other, pygame.Rect):
+            other_rect = other
+        else:
+            raise ValueError(f"collides_with: invalid type {type(other)}")
+        return self.rect.colliderect(other_rect)
