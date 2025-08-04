@@ -18,9 +18,9 @@ from stable_baselines3 import SAC
 from jetpack_env import JetpackEnv
 
 # === SAVING CONFIG ===
-exp_name = "sac_pro900k_stage3_extended900v2"
+exp_name = "sac_pro1.8m_stage3_extended900"
 total_timesteps = 900000
-model_path = "./ai/models/model_sac_pro900k_stage3_retrained.zip"
+model_path = "./ai/models/model_sac_pro900k_stage3_extended900v2.zip"
 
 stage = 3
 env = JetpackEnv(render=False)
