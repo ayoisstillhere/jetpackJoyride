@@ -48,7 +48,7 @@ if __name__ == "__main__":
         "--filename",
         type=str,
         required=False,
-        default="model_sac_pro900k_stage3_extended200.zip",
+        default="model_sac_pro1.8m_stage3_extended900",
         help="Model filename stored in the Hugging Face repo (e.g. model_sac_pro900k_stage3_extended200.zip)",
     )
     args = parser.parse_args()
