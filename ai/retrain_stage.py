@@ -18,8 +18,8 @@ from stable_baselines3 import SAC
 from jetpack_env import JetpackEnv
 
 # === SAVING CONFIG ===
-exp_name = "sac_pro900k_stage3_extended200"
-total_timesteps = 200000
+exp_name = "sac_pro900k_stage3_extended900v2"
+total_timesteps = 900000
 model_path = "./ai/models/model_sac_pro900k_stage3_retrained.zip"
 
 stage = 3
@@ -28,16 +28,27 @@ env.fixed_stage = stage
 
 # === Load existing model ===
 print(f"Loading pretrained model from {model_path}")
-model = SAC.load(model_path, env=env)
+old_model = SAC.load(model_path)
+new_model = SAC(
+            'MlpPolicy',
+            env=env,
+            verbose=1,
+            tensorboard_log="./ai/models/logs/",
+            device='cuda',
+            ent_coef="auto"
+        )
+new_model.policy.load_state_dict(old_model.policy.state_dict())
 
 # === Continue training ===
 print(f"Starting retraining for {total_timesteps} steps at stage {stage}...")
-model.learn(
+new_model.learn(
     total_timesteps=total_timesteps,
     tb_log_name=exp_name,
+    progress_bar=True,
+    reset_num_timesteps=False
 )
 
 # === Save final model ===
 final_path = f"./ai/models/model_{exp_name}"
-model.save(final_path)
+new_model.save(final_path)
 print(f"Model saved to {final_path}")
