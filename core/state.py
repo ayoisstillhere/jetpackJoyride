@@ -19,10 +19,19 @@ class GameState:
     def _load_player_data(self):
         """
         Read high score and lifetime distance from file.
+        If file doesn't exist, create it with default values.
         """
         if not os.path.exists(DATA_FILE):
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+            
+            # Set default values
             self.high_score = 0
             self.lifetime_distance = 0
+            
+            # Create the file with default values
+            with open(DATA_FILE, "w") as f:
+                f.write("0\n0")
             return
 
         with open(DATA_FILE, "r") as f:

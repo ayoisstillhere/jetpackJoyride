@@ -8,7 +8,7 @@ class Laser:
     LASER_THICKNESS = 50   # Thickness of the laser beam
 
     def __init__(self, render=True):
-        # Use floats internamente
+        # Use floats
         self.points = self._generate()
         self.render = render
 
@@ -44,7 +44,7 @@ class Laser:
         return self.points[0][1] != self.points[1][1]
 
     def get_hitbox(self):
-        # Converter para int antes de criar o retângulo
+        # Convert to int before creating the rectangle
         start_x = int(min(self.points[0][0], self.points[1][0]))
         start_y = int(min(self.points[0][1], self.points[1][1]))
 
@@ -57,7 +57,7 @@ class Laser:
         if not self.render or not self.image:
             return
 
-        # Garantir coordenadas inteiras ao desenhar
+        # Ensure integer coordinates when drawing
         start_x = int(min(self.points[0][0], self.points[1][0]))
         start_y = int(min(self.points[0][1], self.points[1][1]))
 
