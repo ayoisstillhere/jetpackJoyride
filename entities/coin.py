@@ -4,19 +4,32 @@ import pygame
 
 class Coin:
     def __init__(self, x, y, value=1):
-        self.x = x
-        self.y = y
+        # Use float internamente
+        self.x = float(x)
+        self.y = float(y)
         self.radius = 15
         self.value = value
-        self.image = pygame.transform.scale(pygame.image.load("assets/coin.png").convert_alpha(), (2*self.radius, 2*self.radius))
-        self.rect = self.image.get_rect(center=(x, y))
+        self.image = pygame.transform.scale(
+            pygame.image.load("assets/coin.png").convert_alpha(),
+            (2 * self.radius, 2 * self.radius)
+        )
+        # Retângulo baseado em int
+        self.rect = self.image.get_rect(center=(int(self.x), int(self.y)))
+
+    def _update_rect(self):
+        """Atualiza self.rect baseado nas coordenadas atuais (convertendo para int)."""
+        self.rect.center = (int(self.x), int(self.y))
 
     def move(self, speed):
+        # Atualiza posição em float
         self.x -= speed
-        self.rect.x = self.x - self.radius
+        self._update_rect()
 
     def draw(self, surface):
+        # Antes de desenhar, garantir que rect está coerente
+        self._update_rect()
         surface.blit(self.image, self.rect)
+
 
 def spawn_coins(coins, pattern=None):
     """
@@ -26,7 +39,9 @@ def spawn_coins(coins, pattern=None):
     x = WIDTH + 40
 
     if pattern is None:
-        pattern = random.choice(['single', 'horiz', 'vert', 'diag_up', 'diag_down', 'circle', 'cluster'])
+        pattern = random.choice([
+            'single', 'horiz', 'vert', 'cluster', 'diag_up', 'diag_down', 'circle'
+        ])
 
     if pattern == 'single':
         y = random.randint(y_min, y_max)
@@ -89,6 +104,7 @@ def update_coins(coins, state, player_hitbox, paused, speed):
         if coin.x < -coin.radius:
             to_remove.append(coin)
         elif player_hitbox.colliderect(coin.rect):
+            print(f"------------------- COLLISION! Player: {player_hitbox}, Coin: {coin.rect}")
             state.coin_count += coin.value
             to_remove.append(coin)
 

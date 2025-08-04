@@ -257,10 +257,10 @@ class BackgroundSystem:
             # debug information output
             if int(distance) % 100 == 0:  # print info every 100 meters
                 print(f"Current distance: {distance:.1f}m")
-                print(f"Next change point: {next_change_point}m")
-                print(f"Distance to change: {distance_to_change:.1f}m")
-                print(f"Portal status: {'active' if self.portal.active else 'inactive'}")
-                print(f"Portal trigger status: {'triggered' if self.portal.triggered else 'not triggered'}")
+                # print(f"Next change point: {next_change_point}m")
+                # print(f"Distance to change: {distance_to_change:.1f}m")
+                # print(f"Portal status: {'active' if self.portal.active else 'inactive'}")
+                # print(f"Portal trigger status: {'triggered' if self.portal.triggered else 'not triggered'}")
 
             # force close portal conditions
             if distance_to_change > self.portal_activation_distance + 100:  # when far from change point
