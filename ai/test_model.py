@@ -16,7 +16,7 @@ game.player.controlled_by_ai = True
 env = JetpackEnv(render=True)
 env.game = game
 
-model = SAC.load("./ai/models/model_sac_pro900k_stage3_extended200.zip", env=env)
+model = SAC.load("./ai/models/model_sac_pro900k_stage3_extended900.zip", env=env)
 
 def act_with_sac():
     obs = env._get_obs()

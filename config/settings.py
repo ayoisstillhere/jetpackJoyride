@@ -44,4 +44,4 @@ METEOR_DANGER_PENALTY = 2.0      # penalty when too close to a meteor
 PENALTY_DEATH = 10.0
 REWARD_STAY_IN_MIDDLE = 0.05     # small reward for staying near the middle of the screen
 X_RATIO_THRESHOLD = 0.8          # horizontal ratio after which the player is considered "too far right"
-PENALTY_X_RATIO = 1.0            # penalty scaling for staying too far on the right side
+PENALTY_X_RATIO = 5.0            # penalty scaling for staying too far on the right side

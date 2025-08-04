@@ -6,3 +6,4 @@ ai/models/
 .cache/
 *.zip
 *.tar.gz
+presentation/

@@ -95,7 +95,6 @@ class CurriculumCheckpointCallback(BaseCallback):
             if "curriculum_stage" in info:
                 current_stage = info["curriculum_stage"]
                 if current_stage > self.last_stage:
-                    # Stage mudou → salvar checkpoint
                     self.last_stage = current_stage
                     steps = self.num_timesteps
                     filename = f"checkpoint_stage_{current_stage}_STP{steps}_{exp_name}"
