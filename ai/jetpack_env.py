@@ -116,7 +116,7 @@ class JetpackEnv(gym.Env):
             self.curriculum_stage = self.fixed_stage
 
         self.max_episode_steps_stage0 = random.randint(1500, 2000)
-        # print(f"[DEBUG] Resetando ambiente. Stage atual = {self.curriculum_stage}")
+        # print(f"[DEBUG] Resetting environment. Current stage = {self.curriculum_stage}")
         spawn_coins(self.game.coins, pattern="horiz")
 
         return self._get_obs(), {}

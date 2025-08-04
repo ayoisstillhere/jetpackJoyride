@@ -4,7 +4,7 @@ import pygame
 
 class Coin:
     def __init__(self, x, y, value=1):
-        # Use float internamente
+        # Use float internally
         self.x = float(x)
         self.y = float(y)
         self.radius = 15
@@ -13,7 +13,7 @@ class Coin:
             pygame.image.load("assets/coin.png").convert_alpha(),
             (2 * self.radius, 2 * self.radius)
         )
-        # Retângulo baseado em int
+        # Rectangle based on int
         self.rect = self.image.get_rect(center=(int(self.x), int(self.y)))
 
     def _update_rect(self):
@@ -21,12 +21,12 @@ class Coin:
         self.rect.center = (int(self.x), int(self.y))
 
     def move(self, speed):
-        # Atualiza posição em float
+        # Update position in float
         self.x -= speed
         self._update_rect()
 
     def draw(self, surface):
-        # Antes de desenhar, garantir que rect está coerente
+        # Before drawing, ensure rect is coherent
         self._update_rect()
         surface.blit(self.image, self.rect)
 
