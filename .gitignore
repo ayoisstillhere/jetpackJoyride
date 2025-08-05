@@ -7,3 +7,4 @@ ai/models/
 *.zip
 *.tar.gz
 presentation/
+.idea/
