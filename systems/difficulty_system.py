@@ -66,13 +66,13 @@ class DifficultySystem:
             dict: Contains spawn intervals (in frames) for each obstacle type
         """
         base_intervals = {
-            'rocket': 200,
-            'laser': 300
+            'rocket': 250,
+            'laser': 350
         }
 
         min_intervals = {
-            'rocket': 100,
-            'laser': 120
+            'rocket': 150,
+            'laser': 170
         }
 
         return {

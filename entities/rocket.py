@@ -46,7 +46,7 @@ class Rocket:
                 self.y += 3
         else:
             self.mode = 1
-            self.x -= 10 + game_speed
+            self.x -= 5 + game_speed
 
         if self.x < -50:
             self.reset()
